@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/FrogTest.unity
+    guid: b3a7a86de2ae92d4c8fc90da489e0069
   m_configObjects: {}
