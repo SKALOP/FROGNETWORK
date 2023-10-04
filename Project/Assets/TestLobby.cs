@@ -24,11 +24,20 @@ public class TestLobby : MonoBehaviour
     private float pullTimerMax = 1.1f;
     private string Code;
     [SerializeField] private TextMeshProUGUI codeText;
+    [SerializeField] private TextMeshProUGUI lobbyMember1;
+    [SerializeField] private TextMeshProUGUI lobbyMember2;
+    [SerializeField] private TextMeshProUGUI lobbyMember3;
+    [SerializeField] private TextMeshProUGUI lobbyMember4;
     [SerializeField] private Button lobbyButton;
     [SerializeField] private TMP_InputField inf;
     [SerializeField] private TMP_InputField playerName;
     [SerializeField] private Button JoinButton;
     [SerializeField] private Button leaveButton;
+    [SerializeField] private Button NameButton;
+    public bool slot1 = false;
+    public bool slot2 = false;
+    public bool slot3 = false;
+    public bool slot4 = false;
     private void Awake()
     {
 
@@ -42,6 +51,12 @@ public class TestLobby : MonoBehaviour
             JoinLobbyByCode(Code);
 
         });
+       // NameButton.onClick.AddListener(() =>
+      //  {
+        //    name = playerName.text;
+        //    UpdatePlayerName(playerName.text);
+
+      //  });
         leaveButton.onClick.AddListener(() =>
         {
            
@@ -67,6 +82,8 @@ public class TestLobby : MonoBehaviour
     {
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
+
+
     }
     private async void HandleLobbyHeartbeat()
     {
@@ -90,8 +107,9 @@ public class TestLobby : MonoBehaviour
                 pullTimer = pullTimerMax;
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
                 joinedLobby = lobby;
-
-                if (joinedLobby.Data["startGame"].Value != "0")
+                
+                PrintPlayers(joinedLobby);
+                if (joinedLobby.Data["StartGame"].Value != "0")
                 {
                     TestRelay.Instance.JoinRelay(joinedLobby.Data["StartGame"].Value);
                     joinedLobby = null;
@@ -178,6 +196,7 @@ public class TestLobby : MonoBehaviour
             Lobby lobby = await Lobbies.Instance.JoinLobbyByCodeAsync(lobbyCode, joinLobbyByCodeOptions);
             joinedLobby = lobby;
             PrintPlayers(joinedLobby);
+
             Debug.Log("Joined lobby w code " + lobbyCode);
 
         }
@@ -199,6 +218,46 @@ public class TestLobby : MonoBehaviour
         foreach (Player p in l.Players)
         {
             Debug.Log(p.Id + " " + p.Data["PlayerName"].Value);
+
+            //if(slot1 == false)
+            // {
+            //     Debug.Log("Putting a name in slot 1");
+            //     lobbyMember1.text = p.Data["PlayerName"].Value;
+            lobbyMember1.text = l.Players[0].Data["PlayerName"].Value;
+            if(l.Players.Count == 2)
+            {
+                lobbyMember2.text = l.Players[1].Data["PlayerName"].Value;
+            }
+            if (l.Players.Count == 3)
+            {
+                lobbyMember3.text = l.Players[2].Data["PlayerName"].Value;
+            }
+
+            if (l.Players.Count == 4)
+            {
+                lobbyMember4.text = l.Players[3].Data["PlayerName"].Value;
+            }
+        
+            //     slot1 = true;
+            //}
+            //  else if(slot2 == false)
+            //   {
+            //       Debug.Log("Putting a name in slot 2");
+            //        lobbyMember2.text = p.Data["PlayerName"].Value;
+            //      slot2 = true;
+            //   }
+            //   else if(slot3 == false)
+            //   {
+            //       Debug.Log("Putting a name in slot 3");
+            //      lobbyMember3.text = p.Data["PlayerName"].Value;
+            //       slot3 = true;
+            //   }
+            //   else if (slot4 == false)
+            //   {
+            //      Debug.Log("Putting a name in slot 4");
+            //       lobbyMember4.text = p.Data["PlayerName"].Value;
+            //      slot4 = true;
+            //  }
         }
     }
     private Player GetPlayer()
