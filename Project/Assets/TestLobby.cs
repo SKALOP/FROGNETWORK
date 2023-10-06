@@ -28,11 +28,16 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private TextMeshProUGUI lobbyMember2;
     [SerializeField] private TextMeshProUGUI lobbyMember3;
     [SerializeField] private TextMeshProUGUI lobbyMember4;
+    [SerializeField] private TextMeshProUGUI lobbyText;
     [SerializeField] private Button lobbyButton;
     [SerializeField] private TMP_InputField inf;
     [SerializeField] private TMP_InputField playerName;
     [SerializeField] private Button JoinButton;
+    [SerializeField] private Image lobbyBack;
+    [SerializeField] private Button joinAGameButton;
     [SerializeField] private Button leaveButton;
+    [SerializeField] private Button killButton;
+    [SerializeField] private Button StartGameButton;
     [SerializeField] private Button NameButton;
     public bool slot1 = false;
     public bool slot2 = false;
@@ -40,15 +45,46 @@ public class TestLobby : MonoBehaviour
     public bool slot4 = false;
     private void Awake()
     {
-
+        playerName.onEndEdit.AddListener(delegate { lockInput(playerName); });
+        
+       // joinAGameButton.onClick.AddListener(() =>
+       // {
+//
+      //  });
         lobbyButton.onClick.AddListener(() =>
         {
             CreateLobby();
+            lobbyBack.gameObject.SetActive(true);
+            lobbyText.gameObject.SetActive(true);
+            killButton.gameObject.SetActive(true);
+            lobbyButton.gameObject.SetActive(false);
+            inf.gameObject.SetActive(false);
+            JoinButton.gameObject.SetActive(false);
+            StartGameButton.gameObject.SetActive(true);
+            lobbyMember1.gameObject.SetActive(true);
+            lobbyMember2.gameObject.SetActive(true);
+            lobbyMember3.gameObject.SetActive(true);
+            lobbyMember4.gameObject.SetActive(true);
+            codeText.gameObject.SetActive(true);
+        });
+        StartGameButton.onClick.AddListener(() =>
+        {
+            StartGame();
         });
         JoinButton.onClick.AddListener(() =>
         {
             Code = inf.text;
             JoinLobbyByCode(Code);
+            lobbyBack.gameObject.SetActive(true);
+            lobbyText.gameObject.SetActive(true);
+            leaveButton.gameObject.SetActive(true);
+            lobbyButton.gameObject.SetActive(false);
+            inf.gameObject.SetActive(false);
+            JoinButton.gameObject.SetActive(false);
+            lobbyMember1.gameObject.SetActive(true);
+            lobbyMember2.gameObject.SetActive(true);
+            lobbyMember3.gameObject.SetActive(true);
+            lobbyMember4.gameObject.SetActive(true);
 
         });
        // NameButton.onClick.AddListener(() =>
@@ -59,12 +95,44 @@ public class TestLobby : MonoBehaviour
       //  });
         leaveButton.onClick.AddListener(() =>
         {
-           
+            lobbyBack.gameObject.SetActive(false);
+            lobbyText.gameObject.SetActive(false);
+            leaveButton.gameObject.SetActive(false);
+            playerName.gameObject.SetActive(true);
+            lobbyMember1.gameObject.SetActive(false);
+            lobbyMember2.gameObject.SetActive(false);
+            lobbyMember3.gameObject.SetActive(false);
+            lobbyMember4.gameObject.SetActive(false);
             LeaveLobby();
 
         });
-    }
+        killButton.onClick.AddListener(() =>
+        {
+            lobbyBack.gameObject.SetActive(false);
+            lobbyText.gameObject.SetActive(false);
+            codeText.gameObject.SetActive(false);
+            killButton.gameObject.SetActive(false);
+            StartGameButton.gameObject.SetActive(false);
+            playerName.gameObject.SetActive(true);
+            lobbyMember1.gameObject.SetActive(false);
+            lobbyMember2.gameObject.SetActive(false);
+            lobbyMember3.gameObject.SetActive(false);
+            lobbyMember4.gameObject.SetActive(false);
+            DeleteLobby();
 
+        });
+    }
+    void lockInput(TMP_InputField field)
+    {
+        if(field.text.Length > 0)
+        {
+            playerName.gameObject.SetActive(false);
+            lobbyButton.gameObject.SetActive(true);
+            inf.gameObject.SetActive(true);
+            JoinButton.gameObject.SetActive(true);
+            //enable lobby and join, disable everything else
+        }
+    }
     // Start is called before the first frame update
     private async void Start()
     {
@@ -111,6 +179,14 @@ public class TestLobby : MonoBehaviour
                 PrintPlayers(joinedLobby);
                 if (joinedLobby.Data["StartGame"].Value != "0")
                 {
+                    lobbyBack.gameObject.SetActive(false);
+                    lobbyText.gameObject.SetActive(false);
+                    leaveButton.gameObject.SetActive(false);
+                    lobbyMember1.gameObject.SetActive(false);
+                    lobbyMember2.gameObject.SetActive(false);
+                    lobbyMember3.gameObject.SetActive(false);
+                    lobbyMember4.gameObject.SetActive(false);
+                    StartGameButton.gameObject.SetActive(false);
                     TestRelay.Instance.JoinRelay(joinedLobby.Data["StartGame"].Value);
                     joinedLobby = null;
                 }
@@ -226,18 +302,36 @@ public class TestLobby : MonoBehaviour
             lobbyMember1.text = l.Players[0].Data["PlayerName"].Value;
             if(l.Players.Count == 2)
             {
+                slot2 = true;
                 lobbyMember2.text = l.Players[1].Data["PlayerName"].Value;
             }
             if (l.Players.Count == 3)
             {
+                slot3 = true;
                 lobbyMember3.text = l.Players[2].Data["PlayerName"].Value;
             }
 
             if (l.Players.Count == 4)
             {
+                slot4 = true;
                 lobbyMember4.text = l.Players[3].Data["PlayerName"].Value;
             }
-        
+            if(slot4 = true && l.Players.Count == 3)
+            {
+                lobbyMember4.text = null;
+                slot4 = false;
+            }
+            if (slot3 = true && l.Players.Count == 2)
+            {
+                lobbyMember3.text = null;
+                slot3 = false;
+            }
+            if (slot2 = true && l.Players.Count == 1)
+            {
+                lobbyMember2.text = null;
+                slot2 = false;
+            }
+
             //     slot1 = true;
             //}
             //  else if(slot2 == false)
