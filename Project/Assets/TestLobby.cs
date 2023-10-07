@@ -16,6 +16,9 @@ using System.Threading.Tasks;
 
 public class TestLobby : MonoBehaviour
 {
+    //lobby custom values, including slots for what lobby players are in
+    //timers for keeping the lobby awake
+    //lobby code values for players to join
     private Lobby hostLobby;
     private Lobby joinedLobby;
     private float hbTimer;
@@ -23,6 +26,8 @@ public class TestLobby : MonoBehaviour
     private float pullTimer;
     private float pullTimerMax = 1.1f;
     private string Code;
+    private string hostName;
+    //all the UI assets that need to be referenced for the menus
     [SerializeField] private TextMeshProUGUI codeText;
     [SerializeField] private TextMeshProUGUI lobbyMember1;
     [SerializeField] private TextMeshProUGUI lobbyMember2;
@@ -39,18 +44,22 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private Button killButton;
     [SerializeField] private Button StartGameButton;
     [SerializeField] private Button NameButton;
+
+    //checks for the four slots for players in the lobby
     public bool slot1 = false;
     public bool slot2 = false;
     public bool slot3 = false;
     public bool slot4 = false;
+
+    //on game start, load functionality for buttons
     private void Awake()
     {
+        //plays code when the player is done editing their name
         playerName.onEndEdit.AddListener(delegate { lockInput(playerName); });
         
-       // joinAGameButton.onClick.AddListener(() =>
-       // {
-//
-      //  });
+      //plays a function when a player creates a lobby
+      //makes lobby UI appear
+      //takes awake irrelevant UI
         lobbyButton.onClick.AddListener(() =>
         {
             CreateLobby();
@@ -67,10 +76,20 @@ public class TestLobby : MonoBehaviour
             lobbyMember4.gameObject.SetActive(true);
             codeText.gameObject.SetActive(true);
         });
+
+        //plays a function when a player starts the game
+        //gets rid of some UI only the lobby host sees
         StartGameButton.onClick.AddListener(() =>
         {
             StartGame();
+            codeText.gameObject.SetActive(false);
+            killButton.gameObject.SetActive(false);
         });
+
+        //reads a code the player inputs for joining a lobby
+        //plays a function using that code
+        //makes lobby UI appear
+        //takes away irrelevant UI
         JoinButton.onClick.AddListener(() =>
         {
             Code = inf.text;
@@ -87,17 +106,15 @@ public class TestLobby : MonoBehaviour
             lobbyMember4.gameObject.SetActive(true);
 
         });
-       // NameButton.onClick.AddListener(() =>
-      //  {
-        //    name = playerName.text;
-        //    UpdatePlayerName(playerName.text);
-
-      //  });
+     
+        //allows clients joining the lobby to leave
+        //takes them back to the name selection screen
         leaveButton.onClick.AddListener(() =>
         {
             lobbyBack.gameObject.SetActive(false);
             lobbyText.gameObject.SetActive(false);
             leaveButton.gameObject.SetActive(false);
+            codeText.gameObject.SetActive(false);
             playerName.gameObject.SetActive(true);
             lobbyMember1.gameObject.SetActive(false);
             lobbyMember2.gameObject.SetActive(false);
@@ -106,6 +123,10 @@ public class TestLobby : MonoBehaviour
             LeaveLobby();
 
         });
+
+        //only visible to hosts
+        //deletes the whole lobby if they leave
+        //takes them back to the name selection screen
         killButton.onClick.AddListener(() =>
         {
             lobbyBack.gameObject.SetActive(false);
@@ -118,10 +139,12 @@ public class TestLobby : MonoBehaviour
             lobbyMember2.gameObject.SetActive(false);
             lobbyMember3.gameObject.SetActive(false);
             lobbyMember4.gameObject.SetActive(false);
-            DeleteLobby();
+            LeaveLobby();
 
         });
     }
+    //function that checks if the player has a name.
+    //if so, let them join or create a lobby
     void lockInput(TMP_InputField field)
     {
         if(field.text.Length > 0)
@@ -136,8 +159,12 @@ public class TestLobby : MonoBehaviour
     // Start is called before the first frame update
     private async void Start()
     {
+        //loads all the features using Unity Gaming Services
+        //this includes lobby, relay, and netcode
         await UnityServices.InitializeAsync();
 
+        //creates an anonymous account for the player to play on
+        //if i want to make seperate accounts later, this will need to change
         AuthenticationService.Instance.SignedIn += () =>
         {
             Debug.Log("Signed In " + AuthenticationService.Instance.PlayerId);
@@ -146,13 +173,17 @@ public class TestLobby : MonoBehaviour
 
     }
 
+    //check for any changes in the lobby, as well as keep it running
     private void Update()
     {
+       
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
 
 
     }
+    //if players are waiting in a lobby, it will be shutdown after a time by default
+    //this function refreshes the lobby timer 
     private async void HandleLobbyHeartbeat()
     {
         if (hostLobby != null)
@@ -165,6 +196,13 @@ public class TestLobby : MonoBehaviour
             }
         }
     }
+
+    //handles all updates that occur to the lobby
+    //checks if the game has started yet to send data to client players
+    //sends data to all connected members for who is in the lobby
+    //gets rid of unnecessary UI when game starts
+    //connects players to the relay server when the game starts
+    //checks if this player is the first player in the lobby, if so, gives them the lobby code to share
     private async void HandleLobbyPollForUpdates()
     {
         if (joinedLobby != null)
@@ -190,11 +228,21 @@ public class TestLobby : MonoBehaviour
                     TestRelay.Instance.JoinRelay(joinedLobby.Data["StartGame"].Value);
                     joinedLobby = null;
                 }
+                Debug.Log(playerName.text);
+                if(playerName.text == joinedLobby.Players[0].Data["PlayerName"].Value)
+                {
+                    codeText.text = "Lobby Code: " + joinedLobby.LobbyCode;
+                    codeText.gameObject.SetActive(true);
+                }
+
             }
         }
     }
 
-
+    //function for the host to create a lobby
+    //sets up the variables for the lobby, such as max size for players, whether the lobby needs a code, and custom data that is game specific
+    //map and gamemode will probably not be changed for the sake of this project, but could lead to different games with further work on this
+    //gets the lobby code and writes the lobby code to the UI so the host can let players join their lobby
     private async void CreateLobby()
     {
         try
@@ -226,6 +274,9 @@ public class TestLobby : MonoBehaviour
 
     }
 
+    //not being used right now, if I add public lobbies in the future, this would be used to refresh the list so players can see lobbies that are joinable.
+    //it sorts the ones with available slots to join first
+    //could be sorted for different game modes in the future
     private async void ListLobbies()
     {
 
@@ -259,6 +310,8 @@ public class TestLobby : MonoBehaviour
 
     }
 
+    //function that uses a string code to join a lobby with a certain string
+    //sends data about joining player to the lobby
     private async void JoinLobbyByCode(string lobbyCode)
     {
 
@@ -288,17 +341,17 @@ public class TestLobby : MonoBehaviour
         PrintPlayers(joinedLobby);
     }
 
+    //prints all players to the debug to make sure things are working
+    //goes through every player and looks at their order in the list
+    //sends them to the UI to show lobby members which players are in the lobby
+    //deletes names after people leave
     private void PrintPlayers(Lobby l)
     {
         Debug.Log("Players In Lobby " + l.Name + " " + l.Data["GameMode"].Value + " " + l.Data["Map"].Value);
         foreach (Player p in l.Players)
         {
             Debug.Log(p.Id + " " + p.Data["PlayerName"].Value);
-
-            //if(slot1 == false)
-            // {
-            //     Debug.Log("Putting a name in slot 1");
-            //     lobbyMember1.text = p.Data["PlayerName"].Value;
+ 
             lobbyMember1.text = l.Players[0].Data["PlayerName"].Value;
             if(l.Players.Count == 2)
             {
@@ -332,28 +385,13 @@ public class TestLobby : MonoBehaviour
                 slot2 = false;
             }
 
-            //     slot1 = true;
-            //}
-            //  else if(slot2 == false)
-            //   {
-            //       Debug.Log("Putting a name in slot 2");
-            //        lobbyMember2.text = p.Data["PlayerName"].Value;
-            //      slot2 = true;
-            //   }
-            //   else if(slot3 == false)
-            //   {
-            //       Debug.Log("Putting a name in slot 3");
-            //      lobbyMember3.text = p.Data["PlayerName"].Value;
-            //       slot3 = true;
-            //   }
-            //   else if (slot4 == false)
-            //   {
-            //      Debug.Log("Putting a name in slot 4");
-            //       lobbyMember4.text = p.Data["PlayerName"].Value;
-            //      slot4 = true;
-            //  }
+   
         }
     }
+
+    //sends data about variables associated to a player
+    //right now, this is just their custom names
+    //could be things like level, chosen character, etc in the future
     private Player GetPlayer()
     {
         return new Player
@@ -365,6 +403,7 @@ public class TestLobby : MonoBehaviour
         };
     }
 
+    //if more gamemodes are added, this function will update the lobby to know which gamemode is in play
     private async void UpdateLobbyGameMode(string gameMode)
     {
         try
@@ -385,6 +424,9 @@ public class TestLobby : MonoBehaviour
         }
     }
 
+    //if players want to update player data while in a lobby this is how to do it.
+    //not implemented right now, as UI sends people out of the lobby to retype their name at the start
+    //could be used for other player data in the future (see above GetPlayers() examples)
     private async void UpdatePlayerName(string newPlayerName)
     {
         try
@@ -404,18 +446,29 @@ public class TestLobby : MonoBehaviour
         }
 
     }
+
+    //if a client wants to leave the lobby, this function removes them from the lobby data
+    //if they are the last player in the lobby, then it also kills the lobby
     private async void LeaveLobby()
     {
         try
         {
+            if(joinedLobby.Players.Count ==1)
+            {
+                await LobbyService.Instance.DeleteLobbyAsync(joinedLobby.Id);
+            }
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
+           
         }
         catch(LobbyServiceException e)
         {
             Debug.Log(e);
         }
-        
+        joinedLobby = null;
     }
+
+    //not in use yet, doesn't work as intended
+    //function will kick the 2nd joined player
     private async void KickPlayer()
     {
         try
@@ -428,6 +481,7 @@ public class TestLobby : MonoBehaviour
         }
     }
 
+    //not in use yet, if host wants to no longer be host, the function will shift ownership to the 2nd joined player
     private async void MigrateLobbyHost()
     {
         try
@@ -446,17 +500,10 @@ public class TestLobby : MonoBehaviour
         }
     }
 
-    private async void DeleteLobby()
-    {
-        try
-        {
-            await LobbyService.Instance.DeleteLobbyAsync(joinedLobby.Id);
-        }
-        catch(LobbyServiceException e)
-        {
-            Debug.Log(e);
-        }
-    }
+
+    //changes the gamemode to the relay server code so other players can connect to it
+    //starts the server so players can connect online
+    //sends the message to the relay script to execute the function to start the game and gets a code for the relay server
     public async void StartGame()
     {
         try

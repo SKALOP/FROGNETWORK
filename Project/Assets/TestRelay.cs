@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 public class TestRelay : MonoBehaviour
 {
 
-
+    //creates the relay variable so other scripts (like lobby) can access it
     public static TestRelay Instance { get; private set; }
     private void Awake()
     {
@@ -22,17 +22,16 @@ public class TestRelay : MonoBehaviour
     }
     private async void Start()
     {
-      //  await UnityServices.InitializeAsync();
 
-     //   AuthenticationService.Instance.SignedIn += () => {
-      //      Debug.Log("Signed In " + AuthenticationService.Instance.PlayerId);
-      //  };
-      // await AuthenticationService.Instance.SignInAnonymouslyAsync();
     }
 
 
   
-    
+    //Gets allocation (data from host about IP and port, creates key to send data through this IP and code for the connection)
+    //also defines maximum connections allowed on this relay (Not including host)
+    //get the join code for multiplayer from the allocation creation
+    //starts hosting the game
+    //sends all ip/port data to the unity transport system which runs the netcode, so that all players can get the same data
     public async Task<string> CreateRelay()
     {
         try
@@ -57,6 +56,10 @@ public class TestRelay : MonoBehaviour
             return null;
         }
     }
+
+    //gets the allocation data by joining through the code
+    //shares the IP /port data for the joining client to unityTransport
+    //starts the connection as a joined client
     public async void JoinRelay(string joinCode)
     {
         try

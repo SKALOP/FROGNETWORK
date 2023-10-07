@@ -10,6 +10,8 @@ public class NetworkManagerUI : MonoBehaviour
     [SerializeField] private Button hostbtn;
     [SerializeField] private Button clientbtn;
 
+    //early code to test hosting/joining as a client through LAN connection
+    //simple buttons to allow netcode to start the game as different server types
     private void Awake()
     {
         serverbtn.onClick.AddListener(() =>

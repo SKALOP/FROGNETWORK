@@ -11,6 +11,9 @@ public class PlayerNetwork : NetworkBehaviour
     [SerializeField] private Transform spawnedObjectPrefab;
     private Transform spawnedObjectTransform;
 
+
+    //tests for sending custom data
+    //will need to elaborate on this when I start making the game mechanics
     private NetworkVariable<myCustomData> randomNumber = new NetworkVariable<myCustomData>(
         new myCustomData {
             _int = 50,
@@ -18,7 +21,7 @@ public class PlayerNetwork : NetworkBehaviour
         }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
 
-
+    //allows the data to be sent online over the netcode
     public struct myCustomData : INetworkSerializable
     {
         public int _int;
@@ -34,7 +37,7 @@ public class PlayerNetwork : NetworkBehaviour
         }
     }
 
-
+    //not being used, a function that would allow the changing of variables that I will need for the frog mechanics
     public override void OnNetworkSpawn()
     {
         randomNumber.OnValueChanged += (myCustomData previousValue, myCustomData newValue) =>
@@ -44,6 +47,9 @@ public class PlayerNetwork : NetworkBehaviour
 
     }
     // Update is called once per frame
+    //due to scene references and how the netcode package works, the game spawns a controllable player for each ID present that is the transform for this object.
+    //T and Y buttons also allow for a gameobject aside from the player to be spawned and seen by both over the netcode
+    //this will become useful for future game mechanics programming
     void Update()
     {
         
@@ -62,6 +68,9 @@ public class PlayerNetwork : NetworkBehaviour
             Destroy(spawnedObjectTransform.gameObject);
         }
 
+        //simple player move functionality
+        //W S for the z axis movement, 
+        //A D for the x axis movement
         Vector3 MoveDir = new Vector3(0,0,0);
         if (Input.GetKey(KeyCode.W))
         {
