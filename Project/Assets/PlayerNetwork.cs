@@ -68,10 +68,27 @@ public class PlayerNetwork : NetworkBehaviour
             Destroy(spawnedObjectTransform.gameObject);
         }
 
+        HandleMovement();
+    }
+
+
+    [ServerRpc]
+    private void TestServerRpc(string message)
+    {
+        Debug.Log("TestServerRPC" + message);
+    }
+
+    [ClientRpc]
+    private void TestClientRpc()
+    {
+        Debug.Log("TestClientRPC");
+    }
+    public void HandleMovement()
+    {
         //simple player move functionality
         //W S for the z axis movement, 
         //A D for the x axis movement
-        Vector3 MoveDir = new Vector3(0,0,0);
+        Vector3 MoveDir = new Vector3(0, 0, 0);
         if (Input.GetKey(KeyCode.W))
         {
             MoveDir.z = +1f;
@@ -90,18 +107,5 @@ public class PlayerNetwork : NetworkBehaviour
         }
         float moveSpeed = 3f;
         transform.position += MoveDir * moveSpeed * Time.deltaTime;
-    }
-
-
-    [ServerRpc]
-    private void TestServerRpc(string message)
-    {
-        Debug.Log("TestServerRPC" + message);
-    }
-
-    [ClientRpc]
-    private void TestClientRpc()
-    {
-        Debug.Log("TestClientRPC");
     }
 }

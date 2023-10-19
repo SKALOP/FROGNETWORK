@@ -25,7 +25,7 @@ public class TestLobby : MonoBehaviour
     private float hbTimerMax = 15;
     private float pullTimer;
     private float pullTimerMax = 1.1f;
-    private string Code;
+    private string code;
     private string hostName;
     //all the UI assets that need to be referenced for the menus
     [SerializeField] private TextMeshProUGUI codeText;
@@ -46,116 +46,21 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private Button NameButton;
 
     //checks for the four slots for players in the lobby
-    public bool slot1 = false;
-    public bool slot2 = false;
-    public bool slot3 = false;
-    public bool slot4 = false;
+    public bool slot1, slot2, slot3, slot4 = false;
+   
 
     //on game start, load functionality for buttons
     private void Awake()
     {
         //plays code when the player is done editing their name
         playerName.onEndEdit.AddListener(delegate { lockInput(playerName); });
-        
-      //plays a function when a player creates a lobby
-      //makes lobby UI appear
-      //takes awake irrelevant UI
-        lobbyButton.onClick.AddListener(() =>
-        {
-            CreateLobby();
-            lobbyBack.gameObject.SetActive(true);
-            lobbyText.gameObject.SetActive(true);
-            killButton.gameObject.SetActive(true);
-            lobbyButton.gameObject.SetActive(false);
-            inf.gameObject.SetActive(false);
-            JoinButton.gameObject.SetActive(false);
-            StartGameButton.gameObject.SetActive(true);
-            lobbyMember1.gameObject.SetActive(true);
-            lobbyMember2.gameObject.SetActive(true);
-            lobbyMember3.gameObject.SetActive(true);
-            lobbyMember4.gameObject.SetActive(true);
-            codeText.gameObject.SetActive(true);
-        });
-
-        //plays a function when a player starts the game
-        //gets rid of some UI only the lobby host sees
-        StartGameButton.onClick.AddListener(() =>
-        {
-            StartGame();
-            codeText.gameObject.SetActive(false);
-            killButton.gameObject.SetActive(false);
-        });
-
-        //reads a code the player inputs for joining a lobby
-        //plays a function using that code
-        //makes lobby UI appear
-        //takes away irrelevant UI
-        JoinButton.onClick.AddListener(() =>
-        {
-            Code = inf.text;
-            JoinLobbyByCode(Code);
-            lobbyBack.gameObject.SetActive(true);
-            lobbyText.gameObject.SetActive(true);
-            leaveButton.gameObject.SetActive(true);
-            lobbyButton.gameObject.SetActive(false);
-            inf.gameObject.SetActive(false);
-            JoinButton.gameObject.SetActive(false);
-            lobbyMember1.gameObject.SetActive(true);
-            lobbyMember2.gameObject.SetActive(true);
-            lobbyMember3.gameObject.SetActive(true);
-            lobbyMember4.gameObject.SetActive(true);
-
-        });
-     
-        //allows clients joining the lobby to leave
-        //takes them back to the name selection screen
-        leaveButton.onClick.AddListener(() =>
-        {
-            lobbyBack.gameObject.SetActive(false);
-            lobbyText.gameObject.SetActive(false);
-            leaveButton.gameObject.SetActive(false);
-            codeText.gameObject.SetActive(false);
-            playerName.gameObject.SetActive(true);
-            lobbyMember1.gameObject.SetActive(false);
-            lobbyMember2.gameObject.SetActive(false);
-            lobbyMember3.gameObject.SetActive(false);
-            lobbyMember4.gameObject.SetActive(false);
-            LeaveLobby();
-
-        });
-
-        //only visible to hosts
-        //deletes the whole lobby if they leave
-        //takes them back to the name selection screen
-        killButton.onClick.AddListener(() =>
-        {
-            lobbyBack.gameObject.SetActive(false);
-            lobbyText.gameObject.SetActive(false);
-            codeText.gameObject.SetActive(false);
-            killButton.gameObject.SetActive(false);
-            StartGameButton.gameObject.SetActive(false);
-            playerName.gameObject.SetActive(true);
-            lobbyMember1.gameObject.SetActive(false);
-            lobbyMember2.gameObject.SetActive(false);
-            lobbyMember3.gameObject.SetActive(false);
-            lobbyMember4.gameObject.SetActive(false);
-            LeaveLobby();
-
-        });
+         CreateLobbyButton();
+         StartGameButtonClicked();
+        JoinButtonClicked();
+        LeaveButtonClicked();
+        KillButtonClicked();
     }
-    //function that checks if the player has a name.
-    //if so, let them join or create a lobby
-    void lockInput(TMP_InputField field)
-    {
-        if(field.text.Length > 0)
-        {
-            playerName.gameObject.SetActive(false);
-            lobbyButton.gameObject.SetActive(true);
-            inf.gameObject.SetActive(true);
-            JoinButton.gameObject.SetActive(true);
-            //enable lobby and join, disable everything else
-        }
-    }
+   
     // Start is called before the first frame update
     private async void Start()
     {
@@ -170,52 +75,51 @@ public class TestLobby : MonoBehaviour
             Debug.Log("Signed In " + AuthenticationService.Instance.PlayerId);
         };
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
-
     }
 
     //check for any changes in the lobby, as well as keep it running
     private void Update()
     {
-       
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
-
-
     }
     //if players are waiting in a lobby, it will be shutdown after a time by default
     //this function refreshes the lobby timer 
     private async void HandleLobbyHeartbeat()
     {
-        if (hostLobby != null)
+        if(hostLobby == null)
         {
-            hbTimer -= Time.deltaTime; ;
+            return;
+        }
+            hbTimer -= Time.deltaTime; 
             if (hbTimer < 0f)
             {
                 hbTimer = hbTimerMax;
                 await LobbyService.Instance.SendHeartbeatPingAsync(hostLobby.Id);
             }
-        }
+        
     }
 
     //handles all updates that occur to the lobby
-    //checks if the game has started yet to send data to client players
-    //sends data to all connected members for who is in the lobby
-    //gets rid of unnecessary UI when game starts
-    //connects players to the relay server when the game starts
-    //checks if this player is the first player in the lobby, if so, gives them the lobby code to share
     private async void HandleLobbyPollForUpdates()
     {
-        if (joinedLobby != null)
+        if (joinedLobby == null)
         {
+            return;
+        }
             pullTimer -= Time.deltaTime; ;
             if (pullTimer < 0f)
             {
                 pullTimer = pullTimerMax;
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
                 joinedLobby = lobby;
-                
-                PrintPlayers(joinedLobby);
-                if (joinedLobby.Data["StartGame"].Value != "0")
+            //sends data to all connected members for who is in the lobby
+            PrintPlayers(joinedLobby);
+            //checks if the game has started yet to send data to client players
+            //gets rid of unnecessary UI when game starts
+            //connects players to the relay server when the game starts
+            bool gameIsStarted = joinedLobby.Data["StartGame"].Value != "0";
+                if (gameIsStarted)
                 {
                     lobbyBack.gameObject.SetActive(false);
                     lobbyText.gameObject.SetActive(false);
@@ -228,15 +132,16 @@ public class TestLobby : MonoBehaviour
                     TestRelay.Instance.JoinRelay(joinedLobby.Data["StartGame"].Value);
                     joinedLobby = null;
                 }
-                Debug.Log(playerName.text);
-                if(playerName.text == joinedLobby.Players[0].Data["PlayerName"].Value)
+            //checks if this player is the first player in the lobby, if so, gives them the lobby code to share
+            bool hostCheck = playerName.text == joinedLobby.Players[0].Data["PlayerName"].Value;
+                if (hostCheck)
                 {
                     codeText.text = "Lobby Code: " + joinedLobby.LobbyCode;
                     codeText.gameObject.SetActive(true);
                 }
 
             }
-        }
+        
     }
 
     //function for the host to create a lobby
@@ -249,10 +154,12 @@ public class TestLobby : MonoBehaviour
         {
             string lobbyName = "FrogLobby";
             int maxPlayers = 4;
+
             CreateLobbyOptions createLobbyOptions = new CreateLobbyOptions
             {
                 IsPrivate = true,
                 Player = GetPlayer(),
+
                 Data = new Dictionary<string, DataObject>
             {
                 {"GameMode", new DataObject(DataObject.VisibilityOptions.Public,"Elimination") },
@@ -260,6 +167,7 @@ public class TestLobby : MonoBehaviour
                     {"StartGame", new DataObject(DataObject.VisibilityOptions.Member,"0") }
             }
             };
+
             Lobby l = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, createLobbyOptions);
             hostLobby = l;
             joinedLobby = hostLobby;
@@ -267,6 +175,7 @@ public class TestLobby : MonoBehaviour
             Debug.Log("lobby created: " + l.Name + " " + l.MaxPlayers + " " + l.Id + " " + l.LobbyCode);
             codeText.text = "Lobby Code: " + l.LobbyCode;
         }
+
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
@@ -384,8 +293,6 @@ public class TestLobby : MonoBehaviour
                 lobbyMember2.text = null;
                 slot2 = false;
             }
-
-   
         }
     }
 
@@ -521,6 +428,115 @@ public class TestLobby : MonoBehaviour
         catch (LobbyServiceException e)
         {
             Debug.Log(e);
+        }
+    }
+    public void CreateLobbyButton()
+    {
+        //plays a function when a player creates a lobby
+        //makes lobby UI appear
+        //takes awake irrelevant UI
+        lobbyButton.onClick.AddListener(() =>
+        {
+            CreateLobby();
+            lobbyBack.gameObject.SetActive(true);
+            lobbyText.gameObject.SetActive(true);
+            killButton.gameObject.SetActive(true);
+            lobbyButton.gameObject.SetActive(false);
+            inf.gameObject.SetActive(false);
+            JoinButton.gameObject.SetActive(false);
+            StartGameButton.gameObject.SetActive(true);
+            lobbyMember1.gameObject.SetActive(true);
+            lobbyMember2.gameObject.SetActive(true);
+            lobbyMember3.gameObject.SetActive(true);
+            lobbyMember4.gameObject.SetActive(true);
+            codeText.gameObject.SetActive(true);
+        });
+    }
+    public void StartGameButtonClicked()
+    {
+        //plays a function when a player starts the game
+        //gets rid of some UI only the lobby host sees
+        StartGameButton.onClick.AddListener(() =>
+        {
+            StartGame();
+            codeText.gameObject.SetActive(false);
+            killButton.gameObject.SetActive(false);
+        });
+    }
+    public void JoinButtonClicked()
+    {
+        //reads a code the player inputs for joining a lobby
+        //plays a function using that code
+        //makes lobby UI appear
+        //takes away irrelevant UI
+        JoinButton.onClick.AddListener(() =>
+        {
+            code = inf.text;
+            JoinLobbyByCode(code);
+            lobbyBack.gameObject.SetActive(true);
+            lobbyText.gameObject.SetActive(true);
+            leaveButton.gameObject.SetActive(true);
+            lobbyButton.gameObject.SetActive(false);
+            inf.gameObject.SetActive(false);
+            JoinButton.gameObject.SetActive(false);
+            lobbyMember1.gameObject.SetActive(true);
+            lobbyMember2.gameObject.SetActive(true);
+            lobbyMember3.gameObject.SetActive(true);
+            lobbyMember4.gameObject.SetActive(true);
+
+        });
+    }
+    public void LeaveButtonClicked()
+    {
+        //allows clients joining the lobby to leave
+        //takes them back to the name selection screen
+        leaveButton.onClick.AddListener(() =>
+        {
+            lobbyBack.gameObject.SetActive(false);
+            lobbyText.gameObject.SetActive(false);
+            leaveButton.gameObject.SetActive(false);
+            codeText.gameObject.SetActive(false);
+            playerName.gameObject.SetActive(true);
+            lobbyMember1.gameObject.SetActive(false);
+            lobbyMember2.gameObject.SetActive(false);
+            lobbyMember3.gameObject.SetActive(false);
+            lobbyMember4.gameObject.SetActive(false);
+            LeaveLobby();
+
+        });
+    }
+    public void KillButtonClicked()
+    {
+        //only visible to hosts
+        //deletes the whole lobby if they leave
+        //takes them back to the name selection screen
+        killButton.onClick.AddListener(() =>
+        {
+            lobbyBack.gameObject.SetActive(false);
+            lobbyText.gameObject.SetActive(false);
+            codeText.gameObject.SetActive(false);
+            killButton.gameObject.SetActive(false);
+            StartGameButton.gameObject.SetActive(false);
+            playerName.gameObject.SetActive(true);
+            lobbyMember1.gameObject.SetActive(false);
+            lobbyMember2.gameObject.SetActive(false);
+            lobbyMember3.gameObject.SetActive(false);
+            lobbyMember4.gameObject.SetActive(false);
+            LeaveLobby();
+
+        });
+    }
+    //function that checks if the player has a name.
+    //if so, let them join or create a lobby
+    void lockInput(TMP_InputField field)
+    {
+        if (field.text.Length > 0)
+        {
+            playerName.gameObject.SetActive(false);
+            lobbyButton.gameObject.SetActive(true);
+            inf.gameObject.SetActive(true);
+            JoinButton.gameObject.SetActive(true);
+            //enable lobby and join, disable everything else
         }
     }
 }

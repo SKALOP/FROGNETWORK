@@ -39,6 +39,7 @@ public class TestRelay : MonoBehaviour
             Allocation alc = await RelayService.Instance.CreateAllocationAsync(3);
             string joinCode = await RelayService.Instance.GetJoinCodeAsync(alc.AllocationId);
             Debug.Log(joinCode);
+
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(
                  alc.RelayServer.IpV4,
                 (ushort)alc.RelayServer.Port,
@@ -47,12 +48,16 @@ public class TestRelay : MonoBehaviour
                 alc.ConnectionData
 
                 );
+
             NetworkManager.Singleton.StartHost();
+
             return joinCode;
         }
+
         catch (RelayServiceException e)
         {
             Debug.Log(e);
+
             return null;
         }
     }
@@ -75,8 +80,10 @@ public class TestRelay : MonoBehaviour
                 jalc.ConnectionData,
                 jalc.HostConnectionData
                 );
+
             NetworkManager.Singleton.StartClient();
         }
+
         catch(RelayServiceException e)
         {
             Debug.Log(e);
