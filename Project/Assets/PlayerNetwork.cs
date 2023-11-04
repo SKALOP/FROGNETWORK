@@ -9,9 +9,16 @@ public class PlayerNetwork : NetworkBehaviour
 
 
     [SerializeField] private Transform spawnedObjectPrefab;
-    private Transform spawnedObjectTransform;
-
-
+    public Transform spawnedObjectTransform;
+    Rigidbody rb;
+    int layerMask = 1 << 6;
+    bool jumpPause = true;
+    public CameraHandler ch;
+    [SerializeField] public Vector2 cameraInput;
+    public float VertCamInput;
+    public float HorzCamInput;
+    public GameObject[] cameras;
+    // public GameObject cameraHANDLER;
     //tests for sending custom data
     //will need to elaborate on this when I start making the game mechanics
     private NetworkVariable<myCustomData> randomNumber = new NetworkVariable<myCustomData>(
@@ -44,6 +51,16 @@ public class PlayerNetwork : NetworkBehaviour
         {
             Debug.Log(OwnerClientId + "; randomNumber:" + newValue._int + "; " + newValue._bool + "; "+ newValue.message);
         };
+        
+
+    }
+    public void OnEnable()
+    {
+        spawnedObjectTransform = Instantiate(spawnedObjectPrefab);
+        spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
+        ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
+        ch.targetTransform = this.gameObject.transform;
+       
 
     }
     // Update is called once per frame
@@ -52,12 +69,24 @@ public class PlayerNetwork : NetworkBehaviour
     //this will become useful for future game mechanics programming
     void Update()
     {
-        
+        ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
+        ch.targetTransform = this.gameObject.transform;
+        rb = this.GetComponent<Rigidbody>();
+        cameras = GameObject.FindGameObjectsWithTag("CAMERA");
+        foreach (GameObject c in cameras)
+        {
+            if ((cameraInput.x != 0 || cameraInput.y != 0) && c.GetComponentInChildren<CameraHandler>().inputReceived == false)
+            {
+                c.SetActive(false);
+            }
+        }
         if (!IsOwner) return;
+      //  cameraHANDLER.GetComponent<NetworkObject>().Spawn(true);
+        
         if(Input.GetKeyDown(KeyCode.T))
         {
-            spawnedObjectTransform = Instantiate(spawnedObjectPrefab);
-            spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
+
+           
             TestServerRpc("ServerRPC working");
             TestClientRpc();
             randomNumber.Value = new myCustomData {  _int = Random.Range(0,100), _bool = false, message = "ABCDEFG"};
@@ -71,6 +100,12 @@ public class PlayerNetwork : NetworkBehaviour
         HandleMovement();
     }
 
+    public void FixedUpdate()
+    {
+        float d = Time.fixedDeltaTime;
+        ch.FollowTarget(d);
+        ch.CamRotation(d, HorzCamInput, VertCamInput);
+    }
 
     [ServerRpc]
     private void TestServerRpc(string message)
@@ -85,6 +120,19 @@ public class PlayerNetwork : NetworkBehaviour
     }
     public void HandleMovement()
     {
+        cameraInput.x = Input.GetAxis("Mouse X");
+        cameraInput.y = Input.GetAxis("Mouse Y");
+        if(cameraInput.x != 0 || cameraInput.y != 0) 
+        {
+            ch.inputReceived = true;
+        }
+        else
+        {
+            ch.inputReceived = false;
+        }
+        cameraInput = cameraInput.normalized;
+        VertCamInput = cameraInput.y;
+        HorzCamInput = cameraInput.x;
         //simple player move functionality
         //W S for the z axis movement, 
         //A D for the x axis movement
@@ -107,5 +155,24 @@ public class PlayerNetwork : NetworkBehaviour
         }
         float moveSpeed = 3f;
         transform.position += MoveDir * moveSpeed * Time.deltaTime;
+        Debug.DrawRay(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down) * 2f, Color.cyan);
+        if (Physics.Raycast(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down), 2f, layerMask) && jumpPause == true)
+        {
+         
+            if (Input.GetKey(KeyCode.Space))
+            {
+                rb.velocity = Vector3.zero;
+                rb.AddForce(new Vector3(0, 10, 0), ForceMode.Impulse);
+                StartCoroutine(afterJump());
+            }
+        }
+           
+    }
+    IEnumerator afterJump()
+    {
+        jumpPause = false;
+        yield return new WaitForSeconds(0.5f);
+        jumpPause = true;
+
     }
 }

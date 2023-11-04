@@ -44,6 +44,7 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private Button killButton;
     [SerializeField] private Button StartGameButton;
     [SerializeField] private Button NameButton;
+ 
 
     //checks for the four slots for players in the lobby
     public bool slot1, slot2, slot3, slot4 = false;
@@ -415,6 +416,7 @@ public class TestLobby : MonoBehaviour
     {
         try
         {
+           
             string relayCode = await TestRelay.Instance.CreateRelay();
             Lobby l = await Lobbies.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions
             {

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 public class TestRelay : MonoBehaviour
 {
-
+    [SerializeField] private GameObject cameraC;
     //creates the relay variable so other scripts (like lobby) can access it
     public static TestRelay Instance { get; private set; }
     private void Awake()
@@ -36,6 +36,7 @@ public class TestRelay : MonoBehaviour
     {
         try
         {
+            cameraC.SetActive(false);
             Allocation alc = await RelayService.Instance.CreateAllocationAsync(3);
             string joinCode = await RelayService.Instance.GetJoinCodeAsync(alc.AllocationId);
             Debug.Log(joinCode);
@@ -69,6 +70,7 @@ public class TestRelay : MonoBehaviour
     {
         try
         {
+            cameraC.SetActive(false);
             Debug.Log("Joining Relay with " + joinCode);
             JoinAllocation jalc = await RelayService.Instance.JoinAllocationAsync(joinCode);
 

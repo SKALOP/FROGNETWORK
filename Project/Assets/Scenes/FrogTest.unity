@@ -2030,6 +2030,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c20bff63c240bb4bb8fb8092fff96f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cameraC: {fileID: 1069018080}
 --- !u!4 &748653076
 Transform:
   m_ObjectHideFlags: 0
@@ -3139,7 +3140,7 @@ GameObject:
   - component: {fileID: 1175623912}
   - component: {fileID: 1175623911}
   - component: {fileID: 1175623910}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: plane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
