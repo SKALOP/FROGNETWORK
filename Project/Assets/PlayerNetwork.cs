@@ -18,6 +18,15 @@ public class PlayerNetwork : NetworkBehaviour
     public float VertCamInput;
     public float HorzCamInput;
     public GameObject[] cameras;
+    public GameObject[] players;
+    public bool currentcam = false;
+    public Vector3 camDirF;
+    public Vector3 camDirR;
+    public bool dead = false;
+    public float HorzInput;
+    public float VertInput;
+    public float LastHorzInput;
+    public float LastVertInput;
     // public GameObject cameraHANDLER;
     //tests for sending custom data
     //will need to elaborate on this when I start making the game mechanics
@@ -69,8 +78,16 @@ public class PlayerNetwork : NetworkBehaviour
     //this will become useful for future game mechanics programming
     void Update()
     {
-        ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
-        ch.targetTransform = this.gameObject.transform;
+        if (!dead)
+        {
+            ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
+            ch.targetTransform = this.gameObject.transform;
+        }
+       
+        if (ch.targetTransform.GetComponentInChildren<PlayerNetwork>().dead)
+        {
+            ch.targetTransform = players[Random.Range(0, players.Length)].transform;
+        }
         rb = this.GetComponent<Rigidbody>();
         cameras = GameObject.FindGameObjectsWithTag("CAMERA");
         foreach (GameObject c in cameras)
@@ -79,10 +96,23 @@ public class PlayerNetwork : NetworkBehaviour
             {
                 c.SetActive(false);
             }
+            else
+            {
+                camDirF = c.transform.forward;
+                camDirR = c.transform.right;
+            }
+            if (dead)
+            {
+                if (this.gameObject.transform == c.GetComponentInChildren<CameraHandler>().targetTransform)
+                {
+                    c.GetComponentInChildren<CameraHandler>().targetTransform = players[Random.Range(0, players.Length)].transform;
+                }
+            }
+
         }
         if (!IsOwner) return;
-      //  cameraHANDLER.GetComponent<NetworkObject>().Spawn(true);
-        
+        //  cameraHANDLER.GetComponent<NetworkObject>().Spawn(true);
+
         if(Input.GetKeyDown(KeyCode.T))
         {
 
@@ -102,6 +132,19 @@ public class PlayerNetwork : NetworkBehaviour
 
     public void FixedUpdate()
     {
+        if (HorzInput != 0 || VertInput != 0)
+        {
+            LastHorzInput = HorzInput;
+            LastVertInput = VertInput;
+            Vector3 lookAngle = HorzInput * camDirF.normalized + -VertInput * camDirR.normalized;
+            this.transform.rotation = Quaternion.LookRotation(lookAngle, Vector3.up);
+        }
+        //otherwise use the current input for direction
+        else
+        {
+           // Vector3 lookAngle = LastHorzInput * camDirF.normalized + -LastVertInput * camDirR.normalized;
+           // this.transform.rotation = Quaternion.LookRotation(lookAngle, Vector3.up);
+        }
         float d = Time.fixedDeltaTime;
         ch.FollowTarget(d);
         ch.CamRotation(d, HorzCamInput, VertCamInput);
@@ -153,8 +196,11 @@ public class PlayerNetwork : NetworkBehaviour
         {
             MoveDir.x = +1f;
         }
+        VertInput = MoveDir.z;
+        HorzInput = MoveDir.x;
         float moveSpeed = 3f;
-        transform.position += MoveDir * moveSpeed * Time.deltaTime;
+       // MoveDir = camDir.normalized * MoveDir.x
+        transform.position += MoveDir.z * camDirF.normalized * moveSpeed * Time.deltaTime + MoveDir.x * camDirR.normalized * moveSpeed * Time.deltaTime;
         Debug.DrawRay(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down) * 2f, Color.cyan);
         if (Physics.Raycast(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down), 2f, layerMask) && jumpPause == true)
         {
@@ -162,7 +208,9 @@ public class PlayerNetwork : NetworkBehaviour
             if (Input.GetKey(KeyCode.Space))
             {
                 rb.velocity = Vector3.zero;
-                rb.AddForce(new Vector3(0, 10, 0), ForceMode.Impulse);
+                Vector3 velocity = MoveDir.z * camDirF.normalized * 3 + MoveDir.x * camDirR.normalized * 3;
+                velocity.y = 10;
+                rb.AddForce(velocity, ForceMode.Impulse);
                 StartCoroutine(afterJump());
             }
         }
@@ -174,5 +222,17 @@ public class PlayerNetwork : NetworkBehaviour
         yield return new WaitForSeconds(0.5f);
         jumpPause = true;
 
+    }
+    void OnCollisionEnter(Collision c)
+    {
+        if(c.gameObject.tag == "Water")
+        {
+            dead = true;
+            //cameras[Random.Range(0, cameras.Length)].SetActive(true);
+            players = GameObject.FindGameObjectsWithTag("Player");
+            this.transform.position = new Vector3(0,-100,0);
+            ch.targetTransform = players[Random.Range(0,players.Length)].transform;
+            // Destroy(this.gameObject);
+        }
     }
 }

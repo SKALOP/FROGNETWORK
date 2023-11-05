@@ -44,7 +44,7 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private Button killButton;
     [SerializeField] private Button StartGameButton;
     [SerializeField] private Button NameButton;
- 
+    public bool lockCheck = false;
 
     //checks for the four slots for players in the lobby
     public bool slot1, slot2, slot3, slot4 = false;
@@ -160,6 +160,7 @@ public class TestLobby : MonoBehaviour
             {
                 IsPrivate = true,
                 Player = GetPlayer(),
+                IsLocked = lockCheck,
 
                 Data = new Dictionary<string, DataObject>
             {
@@ -318,6 +319,7 @@ public class TestLobby : MonoBehaviour
         {
             hostLobby = await Lobbies.Instance.UpdateLobbyAsync(hostLobby.Id, new UpdateLobbyOptions
             {
+                IsLocked = lockCheck,
                 Data = new Dictionary<string, DataObject>
         {
             { "GameMode", new DataObject(DataObject.VisibilityOptions.Public,gameMode)}
@@ -416,7 +418,8 @@ public class TestLobby : MonoBehaviour
     {
         try
         {
-           
+           lockCheck = true;
+            UpdateLobbyGameMode("Elimination");
             string relayCode = await TestRelay.Instance.CreateRelay();
             Lobby l = await Lobbies.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions
             {

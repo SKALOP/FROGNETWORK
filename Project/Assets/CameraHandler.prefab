@@ -51,9 +51,10 @@ MonoBehaviour:
   cameraPivotTransform: {fileID: 451219949663065975}
   lookSpeed: 0.1
   followSpeed: 0.1
-  pivotSpeed: 0.03
+  pivotSpeed: 0.06
   minimumPivot: -35
   maximumPivot: 35
+  inputReceived: 0
 --- !u!114 &-8797478175850659872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72,7 +73,7 @@ MonoBehaviour:
   ActiveSceneSynchronization: 0
   SceneMigrationSynchronization: 1
   SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
+  DontDestroyWithOwner: 1
   AutoObjectParentSync: 1
 --- !u!1 &6227541441213670768
 GameObject:
