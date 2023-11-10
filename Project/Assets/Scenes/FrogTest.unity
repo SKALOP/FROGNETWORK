@@ -2163,6 +2163,11 @@ MonoBehaviour:
   killButton: {fileID: 126993407}
   StartGameButton: {fileID: 158650028}
   NameButton: {fileID: 0}
+  lockCheck: 0
+  mainCam: {fileID: 1069018082}
+  timer: 15
+  listOfPlayers: []
+  playerCams: []
   slot1: 0
   slot2: 0
   slot3: 0

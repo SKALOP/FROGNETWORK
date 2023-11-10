@@ -45,6 +45,10 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private Button StartGameButton;
     [SerializeField] private Button NameButton;
     public bool lockCheck = false;
+    public Camera mainCam;
+    public float timer = 5;
+    public GameObject[] listOfPlayers;
+    public GameObject[] playerCams;
 
     //checks for the four slots for players in the lobby
     public bool slot1, slot2, slot3, slot4 = false;
@@ -53,6 +57,7 @@ public class TestLobby : MonoBehaviour
     //on game start, load functionality for buttons
     private void Awake()
     {
+        //playerName.text = "P1";
         //plays code when the player is done editing their name
         playerName.onEndEdit.AddListener(delegate { lockInput(playerName); });
          CreateLobbyButton();
@@ -81,6 +86,50 @@ public class TestLobby : MonoBehaviour
     //check for any changes in the lobby, as well as keep it running
     private void Update()
     {
+       
+        if (lockCheck)
+        {
+            timer -= Time.deltaTime;
+            playerCams = GameObject.FindGameObjectsWithTag("CAMERA");
+        }
+        
+        if(timer < 0)
+        {
+            listOfPlayers = GameObject.FindGameObjectsWithTag("Player");
+            float aliveCount = listOfPlayers.Length;
+            foreach (GameObject op in listOfPlayers)
+            {
+
+                if (op.GetComponentInChildren<PlayerNetwork>().deadValue.Value)
+                {
+                    aliveCount -= 1;
+                }
+                if (aliveCount == 1)
+                {
+                    Debug.Log("Shutting Down");
+                    lobbyBack.gameObject.SetActive(true);
+                    lobbyText.gameObject.SetActive(true);
+                    killButton.gameObject.SetActive(true);
+                    lobbyButton.gameObject.SetActive(false);
+                    inf.gameObject.SetActive(false);
+                    JoinButton.gameObject.SetActive(false);
+                    StartGameButton.gameObject.SetActive(true);
+                    lobbyMember1.gameObject.SetActive(true);
+                    lobbyMember2.gameObject.SetActive(true);
+                    lobbyMember3.gameObject.SetActive(true);
+                    lobbyMember4.gameObject.SetActive(true);
+                    codeText.gameObject.SetActive(true);
+                    mainCam.enabled = true;
+                    mainCam.gameObject.SetActive(true);
+                    foreach(GameObject pc in playerCams)
+                    {
+                        pc.gameObject.SetActive(false);
+                    }
+                     NetworkManager.Singleton.Shutdown();
+                }
+            }
+        }
+       
         HandleLobbyHeartbeat();
         HandleLobbyPollForUpdates();
     }
@@ -258,9 +307,25 @@ public class TestLobby : MonoBehaviour
     //deletes names after people leave
     private void PrintPlayers(Lobby l)
     {
+      //  float aliveCount = l.Players.Count;
+       // listOfPlayers = GameObject.FindGameObjectsWithTag("Player");
+       // foreach (GameObject op in listOfPlayers) {
+
+        //    if (op.GetComponentInChildren<PlayerNetwork>().deadValue.Value)
+         //   {
+          //      aliveCount -= 1;
+          //  }
+           // if (aliveCount == 1)
+          //  {
+           //     Debug.Log("Shutting Down");
+               // NetworkManager.Singleton.Shutdown();
+          //  }
+      //  }
+        
         Debug.Log("Players In Lobby " + l.Name + " " + l.Data["GameMode"].Value + " " + l.Data["Map"].Value);
         foreach (Player p in l.Players)
         {
+
             Debug.Log(p.Id + " " + p.Data["PlayerName"].Value);
  
             lobbyMember1.text = l.Players[0].Data["PlayerName"].Value;
@@ -488,6 +553,7 @@ public class TestLobby : MonoBehaviour
             lobbyMember2.gameObject.SetActive(true);
             lobbyMember3.gameObject.SetActive(true);
             lobbyMember4.gameObject.SetActive(true);
+            lockCheck = true;
 
         });
     }

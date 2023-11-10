@@ -34,14 +34,16 @@ public class PlayerNetwork : NetworkBehaviour
         new myCustomData {
             _int = 50,
             _bool = false,
+            dead = false,
         }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
+    public NetworkVariable<bool> deadValue = new NetworkVariable<bool>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     //allows the data to be sent online over the netcode
     public struct myCustomData : INetworkSerializable
     {
         public int _int;
         public bool _bool;
+        public bool dead;
         public FixedString128Bytes message;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -56,6 +58,7 @@ public class PlayerNetwork : NetworkBehaviour
     //not being used, a function that would allow the changing of variables that I will need for the frog mechanics
     public override void OnNetworkSpawn()
     {
+        deadValue.OnValueChanged += OnStateChanged;
         randomNumber.OnValueChanged += (myCustomData previousValue, myCustomData newValue) =>
         {
             Debug.Log(OwnerClientId + "; randomNumber:" + newValue._int + "; " + newValue._bool + "; "+ newValue.message);
@@ -63,8 +66,22 @@ public class PlayerNetwork : NetworkBehaviour
         
 
     }
+    public void OnStateChanged(bool previous, bool current)
+    {
+        if (deadValue.Value == false)
+        {
+            ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
+            ch.targetTransform = this.gameObject.transform;
+        }
+        if (ch.targetTransform.GetComponentInChildren<PlayerNetwork>().deadValue.Value == true)
+        {
+            ch.targetTransform = players[Random.Range(0, players.Length)].transform;
+        }
+    }
     public void OnEnable()
     {
+
+       // randomNumber.Value = new myCustomData { _int = Random.Range(0, 100), _bool = false, dead = false, message = "ABCDEFG" };
         spawnedObjectTransform = Instantiate(spawnedObjectPrefab);
         spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
         ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
@@ -78,16 +95,26 @@ public class PlayerNetwork : NetworkBehaviour
     //this will become useful for future game mechanics programming
     void Update()
     {
-        if (!dead)
+
+        // dead = randomNumber.dead;
+        //  if (deadValue.Value == false)
+        // {
+        //      ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
+        //      ch.targetTransform = this.gameObject.transform;
+        //   }
+        if (deadValue.Value == false)
         {
             ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
             ch.targetTransform = this.gameObject.transform;
         }
-       
-        if (ch.targetTransform.GetComponentInChildren<PlayerNetwork>().dead)
+        if (ch.targetTransform.GetComponentInChildren<PlayerNetwork>().deadValue.Value == true)
         {
             ch.targetTransform = players[Random.Range(0, players.Length)].transform;
         }
+        // if (ch.targetTransform.GetComponentInChildren<PlayerNetwork>().deadValue.Value == true)
+        //   {
+        //     ch.targetTransform = players[Random.Range(0, players.Length)].transform;
+        //  }
         rb = this.GetComponent<Rigidbody>();
         cameras = GameObject.FindGameObjectsWithTag("CAMERA");
         foreach (GameObject c in cameras)
@@ -227,11 +254,12 @@ public class PlayerNetwork : NetworkBehaviour
     {
         if(c.gameObject.tag == "Water")
         {
-            dead = true;
+            deadValue.Value = true;
+            //dead = true;
             //cameras[Random.Range(0, cameras.Length)].SetActive(true);
             players = GameObject.FindGameObjectsWithTag("Player");
             this.transform.position = new Vector3(0,-100,0);
-            ch.targetTransform = players[Random.Range(0,players.Length)].transform;
+           // ch.targetTransform = players[Random.Range(0,players.Length)].transform;
             // Destroy(this.gameObject);
         }
     }
