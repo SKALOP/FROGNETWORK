@@ -2147,6 +2147,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5f6524901587f040abe08055a3ad7c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pullTimer: 0
   codeText: {fileID: 2097941743}
   lobbyMember1: {fileID: 504511976}
   lobbyMember2: {fileID: 992241458}
@@ -2168,6 +2169,7 @@ MonoBehaviour:
   timer: 15
   listOfPlayers: []
   playerCams: []
+  noPlayers: 0
   slot1: 0
   slot2: 0
   slot3: 0
@@ -7034,7 +7036,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0

@@ -13,6 +13,7 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Networking.Transport.Relay;
 using System.Threading.Tasks;
+using UnityEngine.SceneManagement;
 
 public class TestLobby : MonoBehaviour
 {
@@ -20,10 +21,10 @@ public class TestLobby : MonoBehaviour
     //timers for keeping the lobby awake
     //lobby code values for players to join
     private Lobby hostLobby;
-    private Lobby joinedLobby;
+    public Lobby joinedLobby;
     private float hbTimer;
     private float hbTimerMax = 15;
-    private float pullTimer;
+    public float pullTimer;
     private float pullTimerMax = 1.1f;
     private string code;
     private string hostName;
@@ -49,7 +50,7 @@ public class TestLobby : MonoBehaviour
     public float timer = 5;
     public GameObject[] listOfPlayers;
     public GameObject[] playerCams;
-
+    public bool noPlayers = false;
     //checks for the four slots for players in the lobby
     public bool slot1, slot2, slot3, slot4 = false;
    
@@ -86,14 +87,13 @@ public class TestLobby : MonoBehaviour
     //check for any changes in the lobby, as well as keep it running
     private void Update()
     {
-       
         if (lockCheck)
         {
             timer -= Time.deltaTime;
             playerCams = GameObject.FindGameObjectsWithTag("CAMERA");
         }
-        
-        if(timer < 0)
+
+        if (timer < 0)
         {
             listOfPlayers = GameObject.FindGameObjectsWithTag("Player");
             float aliveCount = listOfPlayers.Length;
@@ -107,31 +107,44 @@ public class TestLobby : MonoBehaviour
                 if (aliveCount == 1)
                 {
                     Debug.Log("Shutting Down");
-                    lobbyBack.gameObject.SetActive(true);
-                    lobbyText.gameObject.SetActive(true);
-                    killButton.gameObject.SetActive(true);
-                    lobbyButton.gameObject.SetActive(false);
-                    inf.gameObject.SetActive(false);
-                    JoinButton.gameObject.SetActive(false);
-                    StartGameButton.gameObject.SetActive(true);
-                    lobbyMember1.gameObject.SetActive(true);
-                    lobbyMember2.gameObject.SetActive(true);
-                    lobbyMember3.gameObject.SetActive(true);
-                    lobbyMember4.gameObject.SetActive(true);
-                    codeText.gameObject.SetActive(true);
-                    mainCam.enabled = true;
-                    mainCam.gameObject.SetActive(true);
-                    foreach(GameObject pc in playerCams)
-                    {
-                        pc.gameObject.SetActive(false);
-                    }
-                     NetworkManager.Singleton.Shutdown();
+                   // lobbyBack.gameObject.SetActive(true);
+                  //  lobbyText.gameObject.SetActive(true);
+                   // killButton.gameObject.SetActive(true);
+                   // lobbyButton.gameObject.SetActive(false);
+                   // inf.gameObject.SetActive(false);
+                   // JoinButton.gameObject.SetActive(false);
+                   // StartGameButton.gameObject.SetActive(true);
+                   // lobbyMember1.gameObject.SetActive(true);
+                  //  lobbyMember2.gameObject.SetActive(true);
+                   // lobbyMember3.gameObject.SetActive(true);
+                   // lobbyMember4.gameObject.SetActive(true);
+                   // codeText.gameObject.SetActive(true);
+                   // mainCam.enabled = true;
+                  //  mainCam.gameObject.SetActive(true);
+                   
+
+                    //this works, checking other way
+                    StartCoroutine(Victory());
+
+                    
+                   // op.GetComponent<NetworkObject>().Despawn();
+                   // NetworkManager.Singleton.Shutdown();
+                    //lockCheck = false;
+                    //joinedLobby = null;
+
+
                 }
             }
         }
-       
+
         HandleLobbyHeartbeat();
+       
+
+       
         HandleLobbyPollForUpdates();
+
+
+
     }
     //if players are waiting in a lobby, it will be shutdown after a time by default
     //this function refreshes the lobby timer 
@@ -164,6 +177,7 @@ public class TestLobby : MonoBehaviour
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
                 joinedLobby = lobby;
             //sends data to all connected members for who is in the lobby
+            Debug.Log("UPDATING PLAYER DATA");
             PrintPlayers(joinedLobby);
             //checks if the game has started yet to send data to client players
             //gets rid of unnecessary UI when game starts
@@ -183,12 +197,20 @@ public class TestLobby : MonoBehaviour
                     joinedLobby = null;
                 }
             //checks if this player is the first player in the lobby, if so, gives them the lobby code to share
-            bool hostCheck = playerName.text == joinedLobby.Players[0].Data["PlayerName"].Value;
+            try
+            {
+                bool hostCheck = playerName.text == joinedLobby.Players[0].Data["PlayerName"].Value;
                 if (hostCheck)
                 {
                     codeText.text = "Lobby Code: " + joinedLobby.LobbyCode;
                     codeText.gameObject.SetActive(true);
                 }
+            }
+            catch
+            {
+
+            }
+           
 
             }
         
@@ -609,6 +631,15 @@ public class TestLobby : MonoBehaviour
             JoinButton.gameObject.SetActive(true);
             //enable lobby and join, disable everything else
         }
+    }
+
+    IEnumerator Victory()
+    {
+
+
+        yield return new WaitForSeconds(5f);
+        NetworkManager.Singleton.Shutdown();
+        SceneManager.LoadScene("FrogTest");
     }
 }
 
