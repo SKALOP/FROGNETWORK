@@ -72,11 +72,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spawnedObjectPrefab: {fileID: 8426919667857595842, guid: 9248b5b83290b984fa0377b7d31c9300, type: 3}
   spawnedObjectTransform: {fileID: 0}
+  TonguePrefab: {fileID: 4049271075330092176, guid: fe15202a80deb7046b909ec498837a01, type: 3}
+  tongueTransform: {fileID: 0}
   ch: {fileID: 0}
   cameraInput: {x: 0, y: 0}
   VertCamInput: 0
   HorzCamInput: 0
   cameras: []
+  players: []
   currentcam: 0
   camDirF: {x: 0, y: 0, z: 0}
   camDirR: {x: 0, y: 0, z: 0}
@@ -85,6 +88,9 @@ MonoBehaviour:
   VertInput: 0
   LastHorzInput: 0
   LastVertInput: 0
+  hitStrength: 15
+  deadValue:
+    m_InternalValue: 0
 --- !u!114 &3647159964914123895
 MonoBehaviour:
   m_ObjectHideFlags: 0

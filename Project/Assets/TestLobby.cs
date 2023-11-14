@@ -40,6 +40,8 @@ public class TestLobby : MonoBehaviour
     [SerializeField] private TMP_InputField playerName;
     [SerializeField] private Button JoinButton;
     [SerializeField] private Image lobbyBack;
+    [SerializeField] private Image reticle1;
+    [SerializeField] private Image reticle2;
     [SerializeField] private Button joinAGameButton;
     [SerializeField] private Button leaveButton;
     [SerializeField] private Button killButton;
@@ -553,6 +555,8 @@ public class TestLobby : MonoBehaviour
             StartGame();
             codeText.gameObject.SetActive(false);
             killButton.gameObject.SetActive(false);
+            reticle1.gameObject.SetActive(true);
+            reticle2.gameObject.SetActive(true);
         });
     }
     public void JoinButtonClicked()
