@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 3647159964914123895}
   - component: {fileID: -8807324950093153031}
   - component: {fileID: -6080864312063480536}
+  - component: {fileID: 5806930159683753471}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -72,9 +73,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spawnedObjectPrefab: {fileID: 8426919667857595842, guid: 9248b5b83290b984fa0377b7d31c9300, type: 3}
   spawnedObjectTransform: {fileID: 0}
-  TonguePrefab: {fileID: 4049271075330092176, guid: fe15202a80deb7046b909ec498837a01, type: 3}
+  localTongue: {fileID: 9157561507616173256, guid: f904d9e1319a5594f8962fc032b0ab8e, type: 3}
+  localTongueTransform: {fileID: 0}
+  TonguePrefab: {fileID: 9157561507616173256, guid: fe15202a80deb7046b909ec498837a01, type: 3}
+  ServerTonguePrefab: {fileID: 9157561507616173256, guid: 19b9822a3586746449f49b5bd1d5a0d4, type: 3}
   tongueTransform: {fileID: 0}
+  lt: {fileID: 0}
+  hitTarget: {x: 0, y: 0, z: 0}
   ch: {fileID: 0}
+  th: {fileID: 0}
   cameraInput: {x: 0, y: 0}
   VertCamInput: 0
   HorzCamInput: 0
@@ -171,6 +178,18 @@ CapsuleCollider:
   m_Height: 1.81
   m_Direction: 1
   m_Center: {x: 0, y: 0.99, z: 0}
+--- !u!114 &5806930159683753471
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2452618469817169457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 911098c99aaa8eb4e964fef7e2dfa434, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6516501271833289669
 GameObject:
   m_ObjectHideFlags: 0

@@ -120,7 +120,7 @@ GameObject:
   - component: {fileID: -6859382789245331526}
   - component: {fileID: 2014226866452328892}
   m_Layer: 0
-  m_Name: Tongue
+  m_Name: ServerTongue
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -508,6 +508,8 @@ public class TestLobby : MonoBehaviour
         try
         {
            lockCheck = true;
+            reticle1.gameObject.SetActive(true);
+            reticle2.gameObject.SetActive(true);
             UpdateLobbyGameMode("Elimination");
             string relayCode = await TestRelay.Instance.CreateRelay();
             Lobby l = await Lobbies.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions

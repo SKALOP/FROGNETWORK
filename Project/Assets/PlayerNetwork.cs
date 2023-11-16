@@ -10,9 +10,14 @@ public class PlayerNetwork : NetworkBehaviour
 
     [SerializeField] private Transform spawnedObjectPrefab;
     public Transform spawnedObjectTransform;
-    [SerializeField] private Transform TonguePrefab;
-    public Transform tongueTransform;
+    public GameObject localTongue;
+    public GameObject localTongueTransform;
+    [SerializeField] public GameObject TonguePrefab;
+    [SerializeField] public GameObject ServerTonguePrefab;
+    public GameObject tongueTransform;
+    public TestLobby lt;
     public Vector3 hitTarget;
+   // public SpawnTongue st;
     Rigidbody rb;
     int layerMask = 1 << 6;
     bool jumpPause = true;
@@ -89,7 +94,7 @@ public class PlayerNetwork : NetworkBehaviour
     }
     public void OnEnable()
     {
-
+     //   st = this.gameObject.GetComponent<SpawnTongue>();
        // randomNumber.Value = new myCustomData { _int = Random.Range(0, 100), _bool = false, dead = false, message = "ABCDEFG" };
         spawnedObjectTransform = Instantiate(spawnedObjectPrefab);
         spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
@@ -104,15 +109,52 @@ public class PlayerNetwork : NetworkBehaviour
     //this will become useful for future game mechanics programming
     void Update()
     {
-        if(th != null)
+        try
         {
-            th.updateTongue(hitTarget, this.gameObject.transform.position);
-            Destroy(tongueTransform.gameObject,3); 
+
+            // GameObject g = GameObject.Find("ServerTongue(Clone)");
+            if (!IsServer)
+            {
+                tongueTransform = GameObject.Find("Tongue(Clone)");
+                tongueTransform.gameObject.SetActive(false);
+                //.Find("ServerTongue(Clone)").SetActive(false);
+            }
         }
-        if(tongueTransform == null)
+        catch
+        {
+
+
+        }
+        try
+        {
+            if (th != null)
+            {
+                Debug.Log(hitTarget);
+                th.updateTongue(hitTarget, this.gameObject.transform.position);
+                // th.gameObject.SetActive(false);
+                Destroy(tongueTransform.gameObject, 3);
+                tongueTransform.GetComponent<NetworkObject>().NetworkHide(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId);
+                localTongueTransform.GetComponent<TongueHandler>().updateTongue(hitTarget, this.gameObject.transform.position);
+            }
+        }
+           
+        
+        catch{
+
+        }
+       // tongueTransform = GameObject.Find("Tongue(Clone)");
+       // tongueTransform.SetActive(false);
+        if (localTongueTransform != null)
+        {
+            Debug.Log("DO THE THING");
+           // th.gameObject.SetActive(false);
+            localTongueTransform.GetComponent<TongueHandler>().updateTongue(hitTarget, this.gameObject.transform.position);
+        }
+        if (tongueTransform == null)
         {
             try
             {
+                Destroy(localTongueTransform,3);
                 tongueTransform.GetComponent<NetworkObject>().Despawn();
             }
             catch
@@ -169,8 +211,8 @@ public class PlayerNetwork : NetworkBehaviour
         {
 
            
-            TestServerRpc("ServerRPC working");
-            TestClientRpc();
+           // TestServerRpc("ServerRPC working");
+            //TestClientRpc();
             randomNumber.Value = new myCustomData {  _int = Random.Range(0,100), _bool = false, message = "ABCDEFG"};
         }
         if (Input.GetKeyDown(KeyCode.Y))
@@ -203,14 +245,53 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void TestServerRpc(string message)
+    private void TestServerRpc(ulong clientId, Vector3 target)
     {
-        Debug.Log("TestServerRPC" + message);
+        
+            tongueTransform = Instantiate(TonguePrefab);
+        
+       
+           
+        
+           
+        // tongueTransform.transform.SetParent(this.gameObject.transform);
+        tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+        th = tongueTransform.GetComponentInChildren<TongueHandler>();
+        // tongueTransform.GetComponent<NetworkObject>().NetworkHide(clientId);
+      
+        hitTarget = target;
+        Debug.Log("TestServerRPC" + th);
+    }
+
+    [ServerRpc]
+    private void Test2ServerRpc(ulong clientId, Vector3 target)
+    {
+
+        tongueTransform = Instantiate(ServerTonguePrefab);
+
+
+
+
+
+        // tongueTransform.transform.SetParent(this.gameObject.transform);
+        tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+        th = tongueTransform.GetComponentInChildren<TongueHandler>();
+        // tongueTransform.GetComponent<NetworkObject>().NetworkHide(clientId);
+
+        hitTarget = target;
+        Debug.Log("TestServerRPC" + th);
     }
 
     [ClientRpc]
-    private void TestClientRpc()
+    private void TestClientRpc(ulong clientId, Vector3 target)
     {
+        tongueTransform = Instantiate(TonguePrefab);
+        // tongueTransform.transform.SetParent(this.gameObject.transform);
+        tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+       // tongueTransform.gameObject.SetActive(false);
+        th = tongueTransform.GetComponentInChildren<TongueHandler>();
+        hitTarget = target;
+        Debug.Log("TestServerRPC" + th);
         Debug.Log("TestClientRPC");
     }
     public void HandleMovement()
@@ -290,11 +371,23 @@ public class PlayerNetwork : NetworkBehaviour
             {
                 if (hit.collider.gameObject.tag =="Stickable")
                 {
+                    if (!IsServer)
+                    {
+                        TestServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
+                    }
+                    else
+                    {
+                        Test2ServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
+                    }
+                    
+                   // TestClientRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId,hit.point);
+                    Debug.Log(hit.point + "HITPOINT");
                     hitTarget = hit.point;
-                    tongueTransform = Instantiate(TonguePrefab);
-                   // tongueTransform.transform.SetParent(this.gameObject.transform);
-                    tongueTransform.GetComponent<NetworkObject>().Spawn(true);
-                    th = tongueTransform.GetComponentInChildren<TongueHandler>();
+                    localTongueTransform = Instantiate(localTongue);
+                   // tongueTransform = Instantiate(TonguePrefab);
+                   /////// tongueTransform.transform.SetParent(this.gameObject.transform);
+                    //tongueTransform.GetComponent<NetworkObject>().Spawn(true);
+                   // th = tongueTransform.GetComponentInChildren<TongueHandler>();
                     grounded = false;
 
                     Vector3 hitDir = hit.point - ch.transform.position;
