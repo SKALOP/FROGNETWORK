@@ -14,6 +14,7 @@ public class PlayerNetwork : NetworkBehaviour
     public GameObject localTongueTransform;
     [SerializeField] public GameObject TonguePrefab;
     [SerializeField] public GameObject ServerTonguePrefab;
+
     public GameObject tongueTransform;
     public TestLobby lt;
     public Vector3 hitTarget;
@@ -41,6 +42,12 @@ public class PlayerNetwork : NetworkBehaviour
     public float hitStrength;
     float moveSpeedAmp = 9;
     bool grounded = true;
+   public bool knockBackCD;
+    float kbTimer = 1;
+    public GameObject collidedObj;
+    public Rigidbody rbAP;
+    public int spawnLoc;
+    public float startTimer = 5;
     // public GameObject cameraHANDLER;
     //tests for sending custom data
     //will need to elaborate on this when I start making the game mechanics
@@ -51,6 +58,9 @@ public class PlayerNetwork : NetworkBehaviour
             dead = false,
         }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public NetworkVariable<bool> deadValue = new NetworkVariable<bool>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<float> OnlineSpeedx = new NetworkVariable<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<float> OnlineSpeedy = new NetworkVariable<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<float> OnlineSpeedz = new NetworkVariable<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     //allows the data to be sent online over the netcode
     public struct myCustomData : INetworkSerializable
@@ -73,6 +83,18 @@ public class PlayerNetwork : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         deadValue.OnValueChanged += OnStateChanged;
+        OnlineSpeedx.OnValueChanged += (float previous, float newValue) =>
+        {
+
+        };
+        OnlineSpeedy.OnValueChanged += (float previous, float newValue) =>
+        {
+
+        };
+        OnlineSpeedz.OnValueChanged += (float previous, float newValue) =>
+        {
+
+        };
         randomNumber.OnValueChanged += (myCustomData previousValue, myCustomData newValue) =>
         {
             Debug.Log(OwnerClientId + "; randomNumber:" + newValue._int + "; " + newValue._bool + "; "+ newValue.message);
@@ -87,6 +109,7 @@ public class PlayerNetwork : NetworkBehaviour
             ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
             ch.targetTransform = this.gameObject.transform;
         }
+
         if (ch.targetTransform.GetComponentInChildren<PlayerNetwork>().deadValue.Value == true)
         {
             ch.targetTransform = players[Random.Range(0, players.Length)].transform;
@@ -100,8 +123,8 @@ public class PlayerNetwork : NetworkBehaviour
         spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
         ch = spawnedObjectTransform.GetComponentInChildren<CameraHandler>();
         ch.targetTransform = this.gameObject.transform;
-       
 
+        spawnLoc = Random.Range(0, 3);
     }
     // Update is called once per frame
     //due to scene references and how the netcode package works, the game spawns a controllable player for each ID present that is the transform for this object.
@@ -109,6 +132,33 @@ public class PlayerNetwork : NetworkBehaviour
     //this will become useful for future game mechanics programming
     void Update()
     {
+        rb = this.GetComponent<Rigidbody>();
+        if (startTimer > 0)
+        {
+            Debug.Log("TICKING...");
+            startTimer -= Time.deltaTime;
+            GameObject[] spawns = GameObject.FindGameObjectsWithTag("SPAWN");
+            this.transform.position = spawns[spawnLoc].transform.position;
+            GameObject[] Players = GameObject.FindGameObjectsWithTag("Player");
+            foreach (GameObject p in Players)
+            {
+                Collider[] colliders;
+                  if ((colliders = Physics.OverlapSphere(p.transform.position, 0.5f/* Radius */)).Length > 3)
+                {
+                   // foreach(var c in colliders)
+                  //  {
+                   //     Debug.Log(c);
+                   // }
+                   // Debug.Log("Moving... Too close" + colliders.Length);
+                    spawnLoc = Random.Range(0, 3);
+                }
+               // if (p.transform.position == this.transform.position && p.gameObject != this.gameObject)
+              //  {
+               //     spawnLoc = Random.Range(0, 3);
+               // }
+            }
+            rb.velocity = Vector3.zero;
+        }
         try
         {
 
@@ -142,6 +192,15 @@ public class PlayerNetwork : NetworkBehaviour
         catch{
 
         }
+        if (knockBackCD)
+        {
+            
+            kbTimer -= Time.deltaTime;
+           if(kbTimer < 0)
+            {
+                knockBackCD = false;
+            }
+        }
        // tongueTransform = GameObject.Find("Tongue(Clone)");
        // tongueTransform.SetActive(false);
         if (localTongueTransform != null)
@@ -162,7 +221,7 @@ public class PlayerNetwork : NetworkBehaviour
 
             }
         }
-       
+      
         // dead = randomNumber.dead;
         //  if (deadValue.Value == false)
         // {
@@ -182,7 +241,7 @@ public class PlayerNetwork : NetworkBehaviour
         //   {
         //     ch.targetTransform = players[Random.Range(0, players.Length)].transform;
         //  }
-        rb = this.GetComponent<Rigidbody>();
+        
         cameras = GameObject.FindGameObjectsWithTag("CAMERA");
         foreach (GameObject c in cameras)
         {
@@ -220,7 +279,9 @@ public class PlayerNetwork : NetworkBehaviour
             spawnedObjectTransform.GetComponent<NetworkObject>().Despawn(true);
             Destroy(spawnedObjectTransform.gameObject);
         }
-
+       // OnlineSpeedx.Value = rb.velocity.x;
+       // OnlineSpeedy.Value = rb.velocity.y;
+       // OnlineSpeedz.Value = rb.velocity.z;
         HandleMovement();
     }
 
@@ -282,9 +343,56 @@ public class PlayerNetwork : NetworkBehaviour
         Debug.Log("TestServerRPC" + th);
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    private void CollisionServerRpc(Vector3 sender)
+    {
+
+        //  Collider[] colliders;
+        //  if ((colliders = Physics.OverlapSphere(attacker, 0.2f /* Radius */)).Length == 1) 
+        //  {
+        //      foreach (var collider in colliders)
+        //     {
+        //          atk = collider.gameObject; 
+
+        //   }
+        //  }
+        //  if ((colliders = Physics.OverlapSphere(receiver, 0.2f /* Radius */)).Length == 1)
+        //  {
+        //     foreach (var collider in colliders)
+        //     {
+        //          def = collider.gameObject;
+
+        //     }
+        //  }
+        Debug.Log("Telling Host to Knockback themselves");
+        Vector3 dir = sender - NetworkManager.LocalClient.PlayerObject.transform.position;
+        //Debug.Log(collidedObj + "Hit this");
+       // Debug.Log(dir + "BONLK");
+       rbAP = NetworkManager.LocalClient.PlayerObject.GetComponent<Rigidbody>();
+       //  rbAP = collidedObj.GetComponent<Rigidbody>();
+       // rb.velocity = Vector3.zero;
+       // rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+        rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
+
+    }
+    [ClientRpc]
+    private void CollisionClientRpc(Vector3 sender, ClientRpcParams clientRpcParams = default)
+    {
+        Debug.Log("telling client to knockback themselves");
+          Vector3 dir = sender - NetworkManager.LocalClient.PlayerObject.transform.position;
+       // Debug.Log(collidedObj + "Hit this");
+       // Debug.Log(dir + "BONLK");
+        rbAP = NetworkManager.LocalClient.PlayerObject.GetComponent<Rigidbody>();
+        //  rbAP = collidedObj.GetComponent<Rigidbody>();
+       // rb.velocity = Vector3.zero;
+      //  rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+        rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
+    }
+
     [ClientRpc]
     private void TestClientRpc(ulong clientId, Vector3 target)
     {
+
         tongueTransform = Instantiate(TonguePrefab);
         // tongueTransform.transform.SetParent(this.gameObject.transform);
         tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
@@ -332,7 +440,7 @@ public class PlayerNetwork : NetworkBehaviour
         VertInput = MoveDir.z;
         HorzInput = MoveDir.x;
         float moveSpeed = 3f;
-       // MoveDir = camDir.normalized * MoveDir.x
+       // MoveDir = camDir.normalized * MoveDir.x;
        if(!grounded)
         {
            moveSpeed = moveSpeedAmp;
@@ -346,13 +454,13 @@ public class PlayerNetwork : NetworkBehaviour
         if (Physics.Raycast(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down), 2f, layerMask) && jumpPause == true)
         {
             grounded = true;
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            //rb.velocity = new Vector3(0, rb.velocity.y, 0);
             if (Input.GetKey(KeyCode.Space))
             {
                 grounded = false;
                 rb.velocity = Vector3.zero;
-              //  Vector3 velocity = MoveDir.z * camDirF.normalized * 3 + MoveDir.x * camDirR.normalized * 3;
-              Vector3 velocity = Vector3.zero;
+                Vector3 velocity = MoveDir.z * camDirF.normalized * 7 + MoveDir.x * camDirR.normalized * 7;
+              //Vector3 velocity = Vector3.zero;
                 velocity.y = 10;
                 rb.AddForce(velocity, ForceMode.Impulse);
                 StartCoroutine(afterJump());
@@ -435,6 +543,122 @@ public class PlayerNetwork : NetworkBehaviour
             this.transform.position = new Vector3(0,-100,0);
            // ch.targetTransform = players[Random.Range(0,players.Length)].transform;
             // Destroy(this.gameObject);
+        }
+        /*
+        if (c.gameObject.tag == "Player" && knockBackCD == false)
+        {
+            CollisionServerRpc(this.gameObject.transform.position, c.gameObject.transform.position);
+            float knockBackStrength = 5;
+            float knockbackMultiplier;
+            GameObject attackingPlayer = c.gameObject;
+            Rigidbody rbAP = c.gameObject.GetComponent<Rigidbody>();
+            Vector3 dir = this.transform.position - c.transform.position;
+            ///  float xS = c.gameObject.GetComponentInChildren<PlayerNetwork>().OnlineSpeedx.Value;
+            ///  float yS = c.gameObject.GetComponentInChildren<PlayerNetwork>().OnlineSpeedy.Value;
+            /// float zS = c.gameObject.GetComponentInChildren<PlayerNetwork>().OnlineSpeedz.Value;
+            //if(rbAP.velocity.magnitude > rb.velocity.magnitude)
+            // {
+            //     knockbackMultiplier = 1;
+            // }
+            // else
+            // {
+            //     knockbackMultiplier = -0.5f;
+            // }
+            // Vector3 SPEEEED = new Vector3(xS, 0, zS);
+            //if (rbAP.velocity.magnitude > 0)
+            // {
+          //////  Debug.Log(dir + "BONLK");
+         ///////   rb.velocity = Vector3.zero;
+         ///////       rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+           // }
+           // else
+           // {
+            //    rb.velocity = rbAP.velocity * 100;
+           // }
+            Vector3 knockDir = new Vector3(rbAP.velocity.x,0,rbAP.velocity.z);
+           // Debug.Log("Getting pushed at " + SPEEEED);
+           // rb.velocity = Vector3.zero;
+         
+           // rb.AddForce(knockDir * knockBackStrength * knockbackMultiplier, ForceMode.Impulse);
+            kbTimer = 1;
+            knockBackCD = true;
+        }
+        */
+    }
+    void OnTriggerEnter(Collider c)
+    {
+        Debug.Log(c.gameObject.tag);
+
+        if (c.gameObject.tag == "Player" || c.gameObject.tag == "Untagged" && knockBackCD == false)
+        {
+
+            float knockBackStrength = 5;
+            float knockbackMultiplier;
+            GameObject attackingPlayer = c.gameObject;
+            rbAP = c.gameObject.GetComponent<Rigidbody>();
+            Vector3 dir = this.transform.position - c.transform.position;
+            Debug.Log(c.gameObject.tag + "THIS IS THE OTHER HITBOX");
+           // collidedObj = c.gameObject;
+            
+
+
+            if (IsServer)
+            {
+                ClientRpcParams clientRpcParams = new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new ulong[] { c.gameObject.GetComponent<NetworkObject>().NetworkObjectId }
+                    }
+                };
+                CollisionClientRpc(dir, clientRpcParams);
+            }
+            if(!IsServer) {
+                CollisionServerRpc(this.gameObject.transform.position);
+            }
+
+
+
+
+           // dir = this.transform.position - collidedObj.transform.position;
+           // Debug.Log(collidedObj + "Hit this");
+          //  Debug.Log(dir + "BONLK");
+          //  rbAP = collidedObj.GetComponent<Rigidbody>();
+          //  rb.velocity = Vector3.zero;
+          //  rbAP.velocity = Vector3.zero;
+          //  Debug.Log(rbAP);
+           // rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+           // rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
+            ///  float xS = c.gameObject.GetComponentInChildren<PlayerNetwork>().OnlineSpeedx.Value;
+            ///  float yS = c.gameObject.GetComponentInChildren<PlayerNetwork>().OnlineSpeedy.Value;
+            /// float zS = c.gameObject.GetComponentInChildren<PlayerNetwork>().OnlineSpeedz.Value;
+            //if(rbAP.velocity.magnitude > rb.velocity.magnitude)
+            // {
+            //     knockbackMultiplier = 1;
+            // }
+            // else
+            // {
+            //     knockbackMultiplier = -0.5f;
+            // }
+            // Vector3 SPEEEED = new Vector3(xS, 0, zS);
+            //if (rbAP.velocity.magnitude > 0)
+            // {
+            Debug.Log(dir + "BONLK");
+            // rb.velocity = Vector3.zero;
+            //  rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+            // rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
+            // }
+            // else
+            // {
+            //    rb.velocity = rbAP.velocity * 100;
+            // }
+            Vector3 knockDir = new Vector3(rbAP.velocity.x, 0, rbAP.velocity.z);
+            // Debug.Log("Getting pushed at " + SPEEEED);
+            // rb.velocity = Vector3.zero;
+
+            // rb.AddForce(knockDir * knockBackStrength * knockbackMultiplier, ForceMode.Impulse);
+            kbTimer = 1;
+            knockBackCD = true;
         }
     }
 }

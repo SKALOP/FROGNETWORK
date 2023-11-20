@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -8807324950093153031}
   - component: {fileID: -6080864312063480536}
   - component: {fileID: 5806930159683753471}
+  - component: {fileID: 5726028300377070997}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -96,7 +97,18 @@ MonoBehaviour:
   LastHorzInput: 0
   LastVertInput: 0
   hitStrength: 15
+  knockBackCD: 0
+  collidedObj: {fileID: 0}
+  rbAP: {fileID: 0}
+  spawnLoc: 0
+  startTimer: 5
   deadValue:
+    m_InternalValue: 0
+  OnlineSpeedx:
+    m_InternalValue: 0
+  OnlineSpeedy:
+    m_InternalValue: 0
+  OnlineSpeedz:
     m_InternalValue: 0
 --- !u!114 &3647159964914123895
 MonoBehaviour:
@@ -190,6 +202,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 911098c99aaa8eb4e964fef7e2dfa434, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!136 &5726028300377070997
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2452618469817169457}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.8
+  m_Height: 2.37
+  m_Direction: 1
+  m_Center: {x: 0, y: 1.09, z: 0}
 --- !u!1 &6516501271833289669
 GameObject:
   m_ObjectHideFlags: 0
@@ -289,9 +324,9 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
