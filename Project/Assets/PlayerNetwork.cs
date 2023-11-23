@@ -131,6 +131,7 @@ public class PlayerNetwork : NetworkBehaviour
     //this will become useful for future game mechanics programming
     void Update()
     {
+        this.gameObject.name = "Player" + spawnLoc;
         //delay before match starts, all players need to find a unique spawn first
         rb = this.GetComponent<Rigidbody>();
         if (startTimer > 0)
@@ -319,13 +320,21 @@ public class PlayerNetwork : NetworkBehaviour
     //for some reason, it seems rigidbodies of other's cant be changed normally, and messages need to be sent to the object's owner for them to move objects
     //this is the message for server players
     [ServerRpc(RequireOwnership = false)]
-    private void CollisionServerRpc(Vector3 sender)
+    private void CollisionServerRpc(NetworkObjectReference sender, NetworkObjectReference target)
     {
         //gets the vector from the colliding player to this player, so it can be launched in the right way
         Debug.Log("Telling Host to Knockback themselves");
-        Vector3 dir = sender - NetworkManager.LocalClient.PlayerObject.transform.position;
-       rbAP = NetworkManager.LocalClient.PlayerObject.GetComponent<Rigidbody>();
-        rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
+        if (!sender.TryGet(out NetworkObject networkObject1)){
+            Debug.Log("error");
+        }
+            if (!target.TryGet(out NetworkObject networkObject2)){
+            Debug.Log("error");
+        }
+        Vector3 dir = networkObject1.transform.position - networkObject2.transform.position;
+       Rigidbody rb1 = networkObject1.GetComponent<Rigidbody>();
+        Rigidbody rb2 = networkObject2.GetComponent<Rigidbody>();
+        rb1.AddForce(dir.normalized * 10, ForceMode.Impulse);
+        rb2.AddForce(-dir.normalized * 10, ForceMode.Impulse);
     }
 
     //for some reason, it seems rigidbodies of other's cant be changed normally, and messages need to be sent to the object's owner for them to move objects
@@ -497,11 +506,23 @@ public class PlayerNetwork : NetworkBehaviour
             float knockBackStrength = 5;
             float knockbackMultiplier;
             //get the hit object, and it's rigidbody, get the vector from this player to that one
-            GameObject attackingPlayer = c.gameObject;
-            rbAP = c.gameObject.GetComponent<Rigidbody>();
+          //  GameObject attackingPlayer = c.gameObject;
+         //   rbAP = c.gameObject.GetComponent<Rigidbody>();
             Vector3 dir = this.transform.position - c.transform.position;
             Debug.Log(c.gameObject.tag + "THIS IS THE OTHER HITBOX");
-
+          //  Debug.Log(rb + "Is hitting "+ rbAP + "THIS IS it's rigidbody" + "With a force going" + dir);
+            if (!IsServer)
+            {
+                rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+                CollisionServerRpc(this.gameObject, c.gameObject);
+            }
+           // if (IsServer)
+          //  {
+                //rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+          //  }
+            // rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
+            //   rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
+            /*
             //if this is the host, then send a message to the hit client to have it move it's rigidbody
             if (IsServer)
             {
@@ -516,11 +537,12 @@ public class PlayerNetwork : NetworkBehaviour
             }
             //if this is a client, tell the server to move it's rigidbody
             if(!IsServer) {
-                CollisionServerRpc(this.gameObject.transform.position);
+                CollisionServerRpc(this.gameObject, c.gameObject);
             }
             Vector3 knockDir = new Vector3(rbAP.velocity.x, 0, rbAP.velocity.z);
             kbTimer = 1;
             knockBackCD = true;
+            */
         }
     }
 }
