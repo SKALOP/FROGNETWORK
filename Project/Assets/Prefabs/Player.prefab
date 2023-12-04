@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 5726028300377070997}
   - component: {fileID: -6026955531146341528}
   - component: {fileID: 7044498368028084941}
+  - component: {fileID: 592520220698371426}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -103,6 +104,7 @@ MonoBehaviour:
   rbAP: {fileID: 0}
   spawnLoc: 0
   startTimer: 5
+  pm: {fileID: 0}
   deadValue:
     m_InternalValue: 0
   OnlineSpeedx:
@@ -238,6 +240,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6c0be61502bb534f922ebb746851216, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &592520220698371426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2452618469817169457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9066e49cbcf5ada45becf69c46910404, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cameraInput: {x: 0, y: 0}
+  VertCamInput: 0
+  HorzCamInput: 0
+  HorzInput: 0
+  VertInput: 0
+  LastHorzInput: 0
+  LastVertInput: 0
+  hitStrength: 15
+  localTongue: {fileID: 9157561507616173256, guid: f904d9e1319a5594f8962fc032b0ab8e, type: 3}
+  localTongueTransform: {fileID: 0}
+  hitTarget: {x: 0, y: 0, z: 0}
+  pn: {fileID: 0}
 --- !u!1 &6516501271833289669
 GameObject:
   m_ObjectHideFlags: 0

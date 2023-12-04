@@ -20,34 +20,24 @@ public class PlayerNetwork : NetworkBehaviour
     public Vector3 hitTarget;
    // public SpawnTongue st;
     Rigidbody rb;
-    int layerMask = 1 << 6;
-    bool jumpPause = true;
-    bool tetherPause = true;
     public CameraHandler ch;
     public TongueHandler th;
     [SerializeField] public Vector2 cameraInput;
-    public float VertCamInput;
-    public float HorzCamInput;
-    public GameObject[] cameras;
+        public GameObject[] cameras;
     public GameObject[] players;
     public bool currentcam = false;
     bool speedAmpOn = false;
     public Vector3 camDirF;
     public Vector3 camDirR;
     public bool dead = false;
-    public float HorzInput;
-    public float VertInput;
-    public float LastHorzInput;
-    public float LastVertInput;
-    public float hitStrength;
-    float moveSpeedAmp = 9;
-    bool grounded = true;
    public bool knockBackCD;
     float kbTimer = 1;
     public GameObject collidedObj;
     public Rigidbody rbAP;
     public int spawnLoc;
     public float startTimer = 5;
+    [SerializeField]
+    private PlayerMovement pm;
     // public GameObject cameraHANDLER;
     //tests for sending custom data
     //will need to elaborate on this when I start making the game mechanics
@@ -117,6 +107,7 @@ public class PlayerNetwork : NetworkBehaviour
     }
     public void OnEnable()
     {
+        pm = this.gameObject.GetComponent<PlayerMovement>();
         //create cameras and focus them on their respective players
         spawnedObjectTransform = Instantiate(spawnedObjectPrefab);
         spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true);
@@ -165,11 +156,17 @@ public class PlayerNetwork : NetworkBehaviour
             {
                 tongueTransform = GameObject.Find("Tongue(Clone)");
                 tongueTransform.gameObject.SetActive(false);
+               
+            }
+            if (IsServer)
+            {
+                localTongueTransform = GameObject.Find("LocalTongue(Clone)");
+                localTongueTransform.gameObject.SetActive(false);
             }
         }
         catch
         {
-
+            Debug.Log("There is no Tongue");
         }
 
         try
@@ -178,15 +175,15 @@ public class PlayerNetwork : NetworkBehaviour
             if (th != null)
             {
                 Debug.Log(hitTarget);
-                th.updateTongue(hitTarget, this.gameObject.transform.position);
+                th.updateTongue(pm.hitTarget, this.gameObject.transform.position);
                 Destroy(tongueTransform.gameObject, 3);
                 tongueTransform.GetComponent<NetworkObject>().NetworkHide(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId);
-                localTongueTransform.GetComponent<TongueHandler>().updateTongue(hitTarget, this.gameObject.transform.position);
+                localTongueTransform.GetComponent<TongueHandler>().updateTongue(pm.hitTarget, this.gameObject.transform.position);
             }
         }
         catch
         {
-
+            Debug.Log("There is no Tongue or Local Tongue");
         }
 
         //timer for the knockback effect, so player's cant get launched around too much
@@ -199,11 +196,14 @@ public class PlayerNetwork : NetworkBehaviour
             }
         }
 
-        //make sure local tongues are acting properly
-        if (localTongueTransform != null)
+      try
         {
 
-            localTongueTransform.GetComponent<TongueHandler>().updateTongue(hitTarget, this.gameObject.transform.position);
+            localTongueTransform.GetComponent<TongueHandler>().updateTongue(pm.hitTarget, this.gameObject.transform.position);
+        }
+        catch
+        {
+            Debug.Log("No Local Tongue");
         }
 
         //if there is no online tongue, make sure to destroy the local tongue, and despawn the tongue online
@@ -216,7 +216,7 @@ public class PlayerNetwork : NetworkBehaviour
             }
             catch
             {
-
+                Debug.Log("There is no Tongue or local Tongue");
             }
         }
       
@@ -234,6 +234,8 @@ public class PlayerNetwork : NetworkBehaviour
         
         //I need to make sure the cameras are looking at the correct player
         //to do this, I got every camera in the scene
+
+        /*
         cameras = GameObject.FindGameObjectsWithTag("CAMERA");
         foreach (GameObject c in cameras)
         {
@@ -258,6 +260,7 @@ public class PlayerNetwork : NetworkBehaviour
             }
 
         }
+        */
         if (!IsOwner) return;
 
         //test code used while testing and for reference
@@ -274,31 +277,13 @@ public class PlayerNetwork : NetworkBehaviour
         */
 
         //function for player movement and abilities
-        HandleMovement();
+      //  pm.HandleMovement(ch);
     }
 
-    public void FixedUpdate()
-    {
-        //if there is input, then register it in a variable
-        if (HorzInput != 0 || VertInput != 0)
-        {
-            LastHorzInput = HorzInput;
-            LastVertInput = VertInput;
-            //the character needs to look in the direction of input
-            //this needs to be relative to the camera, so that if A is hit, the player always looks left, no matter what left is in world space
-            Vector3 lookAngle = HorzInput * camDirF.normalized + -VertInput * camDirR.normalized;
-            this.transform.rotation = Quaternion.LookRotation(lookAngle, Vector3.up);
-        }
-        
-        //make sure the camera moves and follows the player, and uses input to rotate around the player
-        float d = Time.fixedDeltaTime;
-        ch.FollowTarget(d);
-        ch.CamRotation(d, HorzCamInput, VertCamInput);
-    }
 
     //online gameObjects can't be created by clients, so they need to send a message to the server to spawn them when needed
     [ServerRpc]
-    private void TestServerRpc(ulong clientId, Vector3 target)
+    public void TestServerRpc(ulong clientId, Vector3 target)
     {
         tongueTransform = Instantiate(TonguePrefab);
         tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
@@ -308,7 +293,7 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void Test2ServerRpc(ulong clientId, Vector3 target)
+    public void Test2ServerRpc(ulong clientId, Vector3 target)
     {
         tongueTransform = Instantiate(ServerTonguePrefab);
         tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
@@ -349,140 +334,7 @@ public class PlayerNetwork : NetworkBehaviour
         rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
     }
 
-    //function that handles all collected inputs and their affects on the player's objects
-    public void HandleMovement()
-    {
-        //get input for camera based on mouse movement
-        cameraInput.x = Input.GetAxis("Mouse X");
-        cameraInput.y = Input.GetAxis("Mouse Y");
-        //if the mouse is moving, then the camera is receiving input
-        //used for the earlier check to determine who's camera is who's
-        if(cameraInput.x != 0 || cameraInput.y != 0) 
-        {
-            ch.inputReceived = true;
-        }
-        else
-        {
-            ch.inputReceived = false;
-        }
-        cameraInput = cameraInput.normalized;
-        VertCamInput = cameraInput.y;
-        HorzCamInput = cameraInput.x;
-
-        //simple player move functionality
-        //W S for the z axis movement, 
-        //A D for the x axis movement
-        Vector3 MoveDir = new Vector3(0, 0, 0);
-        if (Input.GetKey(KeyCode.W))
-        {
-            MoveDir.z = +1f;
-        }
-        if (Input.GetKey(KeyCode.S))
-        {
-            MoveDir.z = -1f;
-        }
-        if (Input.GetKey(KeyCode.A))
-        {
-            MoveDir.x = -1f;
-        }
-        if (Input.GetKey(KeyCode.D))
-        {
-            MoveDir.x = +1f;
-        }
-
-        VertInput = MoveDir.z;
-        HorzInput = MoveDir.x;
-        float moveSpeed = 3f;
-
-        //player has more movement control in the air
-       if(!grounded)
-        {
-           moveSpeed = moveSpeedAmp;
-        }
-        else
-        {
-            moveSpeed = 3f;
-        }
-
-       //make the player move, make sure movement direction is relative to the camera, so w always moves the player away from the camera
-        transform.position += MoveDir.z * camDirF.normalized * moveSpeed * Time.deltaTime + MoveDir.x * camDirR.normalized * moveSpeed * Time.deltaTime;
-
-        //*GROUND DETECTION*
-        Debug.DrawRay(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down) * 2f, Color.cyan);
-        //shoot a raycast below the player to determine if they are touching the ground or not
-        if (Physics.Raycast(new Vector3(this.transform.position.x, this.transform.position.y + 1, this.transform.position.z), this.transform.TransformDirection(Vector3.down), 2f, layerMask) && jumpPause == true)
-        {
-            grounded = true;
-            //if they are, and the player hits space, a jump is performed
-            if (Input.GetKey(KeyCode.Space))
-            {
-                //launch them up, and horizontally in a direction of their choosing
-                grounded = false;
-                rb.velocity = Vector3.zero;
-                Vector3 velocity = Vector3.zero;
-                velocity.y = 10;
-                rb.AddForce(velocity, ForceMode.Impulse);
-                StartCoroutine(afterJump());
-            }
-        }
-
-        //*GRAPPLE MECHANIC*
-        //check for player input
-        if (Input.GetKeyDown(KeyCode.E) && tetherPause == true)
-        {
-            //if there is input, then draw a ray cast from the center of the camera forward a certain distance
-            grounded = false;
-            RaycastHit hit = new RaycastHit();
-            Vector3 pos = new Vector3(Screen.width / 2, Screen.height / 2,0);
-            Ray ray = ch.GetComponentInChildren<Camera>().ScreenPointToRay(pos);
-            Debug.DrawRay(ray.origin, ray.direction * 10, Color.yellow);
-            if(Physics.Raycast(ray, out hit, 30))
-            {
-                //check if it hits something tagged as an object that is grappleable
-                if (hit.collider.gameObject.tag =="Stickable")
-                {
-                    //if it does, and the player is a client, then the server needs to spawn them an object
-                    if (!IsServer)
-                    {
-                        TestServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
-                    }
-                    //if they are not, then the server spawns its own
-                    else
-                    {
-                        Test2ServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
-                    }
-                    
-                    //register the player as being in the air, mark the vector of the hit location, and create a local version of the tongue
-                    hitTarget = hit.point;
-                    localTongueTransform = Instantiate(localTongue);
-                    grounded = false;
-                    Vector3 hitDir = hit.point - ch.transform.position;
-                    rb.velocity = Vector3.zero;
-                    //move player in the direction of the grappled object
-                    rb.AddForce(hitDir.normalized * hitStrength, ForceMode.Impulse);
-                    StartCoroutine(afterTether());
-                }
-            }
-        }
-    }
-
-    //cooldown for jumping
-    IEnumerator afterJump()
-    {
-        jumpPause = false;
-        yield return new WaitForSeconds(0.5f);
-        jumpPause = true;
-
-    }
-    
-    //cooldown for grappling
-    IEnumerator afterTether()
-    {
-        tetherPause = false;
-        yield return new WaitForSeconds(0.2f);
-        tetherPause = true;
-
-    }
+  
 
     //collision check for water, if the player falls into water, they are eliminated
     void OnCollisionEnter(Collision c)

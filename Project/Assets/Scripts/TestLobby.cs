@@ -195,7 +195,9 @@ public class TestLobby : MonoBehaviour
                     lobbyMember3.gameObject.SetActive(false);
                     lobbyMember4.gameObject.SetActive(false);
                     StartGameButton.gameObject.SetActive(false);
-                    TestRelay.Instance.JoinRelay(joinedLobby.Data["StartGame"].Value);
+                reticle1.gameObject.SetActive(true);
+                reticle2.gameObject.SetActive(true);
+                TestRelay.Instance.JoinRelay(joinedLobby.Data["StartGame"].Value);
                     joinedLobby = null;
                 }
             //checks if this player is the first player in the lobby, if so, gives them the lobby code to share
