@@ -40,6 +40,46 @@ public class PlayerMovement : NetworkBehaviour
     void Update()
     {
         if (!IsOwner) return;
+        //*GRAPPLE MECHANIC*
+        //check for player input
+        if (Input.GetKeyDown(KeyCode.E) && tetherPause == true)
+        {
+            //if there is input, then draw a ray cast from the center of the camera forward a certain distance
+            grounded = false;
+            RaycastHit hit = new RaycastHit();
+            Vector3 pos = new Vector3(Screen.width / 2, Screen.height / 2, 0);
+            Ray ray = pn.ch.GetComponentInChildren<Camera>().ScreenPointToRay(pos);
+            Debug.DrawRay(ray.origin, ray.direction * 10, Color.yellow);
+            if (Physics.Raycast(ray, out hit, 30))
+            {
+                //check if it hits something tagged as an object that is grappleable
+                if (hit.collider.gameObject.tag == "Stickable")
+                {
+                    //if it does, and the player is a client, then the server needs to spawn them an object
+                    if (!IsServer)
+                    {
+                        pn.TestServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
+                    }
+                    //if they are not, then the server spawns its own
+                    else
+                    {
+                        pn.Test2ServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
+                    }
+
+                    //register the player as being in the air, mark the vector of the hit location, and create a local version of the tongue
+                    hitTarget = hit.point;
+                    pn.localTongueInstance = Instantiate(localTongue);
+                    pn.lth = pn.localTongueInstance.GetComponentInChildren<TongueHandler>();
+                    grounded = false;
+                    Vector3 hitDir = hit.point - pn.ch.transform.position;
+                    rb.velocity = Vector3.zero;
+                    //move player in the direction of the grappled object
+                    rb.AddForce(hitDir.normalized * hitStrength, ForceMode.Impulse);
+                    StartCoroutine(afterTether());
+                }
+            }
+        }
+        
         //if there is input, then register it in a variable
         if (HorzInput != 0 || VertInput != 0)
         {
@@ -125,44 +165,7 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
 
-        //*GRAPPLE MECHANIC*
-        //check for player input
-        if (Input.GetKeyDown(KeyCode.E) && tetherPause == true)
-        {
-            //if there is input, then draw a ray cast from the center of the camera forward a certain distance
-            grounded = false;
-            RaycastHit hit = new RaycastHit();
-            Vector3 pos = new Vector3(Screen.width / 2, Screen.height / 2, 0);
-            Ray ray = pn.ch.GetComponentInChildren<Camera>().ScreenPointToRay(pos);
-            Debug.DrawRay(ray.origin, ray.direction * 10, Color.yellow);
-            if (Physics.Raycast(ray, out hit, 30))
-            {
-                //check if it hits something tagged as an object that is grappleable
-                if (hit.collider.gameObject.tag == "Stickable")
-                {
-                    //if it does, and the player is a client, then the server needs to spawn them an object
-                    if (!IsServer)
-                    {
-                        pn.TestServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
-                    }
-                    //if they are not, then the server spawns its own
-                    else
-                    {
-                        pn.Test2ServerRpc(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId, hit.point);
-                    }
-
-                    //register the player as being in the air, mark the vector of the hit location, and create a local version of the tongue
-                    hitTarget = hit.point;
-                    pn.localTongueTransform = Instantiate(localTongue);
-                    grounded = false;
-                    Vector3 hitDir = hit.point - pn.ch.transform.position;
-                    rb.velocity = Vector3.zero;
-                    //move player in the direction of the grappled object
-                    rb.AddForce(hitDir.normalized * hitStrength, ForceMode.Impulse);
-                    StartCoroutine(afterTether());
-                }
-            }
-        }
+       
         cameras = GameObject.FindGameObjectsWithTag("CAMERA");
         foreach (GameObject c in cameras)
         {

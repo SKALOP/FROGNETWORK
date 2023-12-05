@@ -11,17 +11,18 @@ public class PlayerNetwork : NetworkBehaviour
     [SerializeField] private Transform spawnedObjectPrefab;
     public Transform spawnedObjectTransform;
     public GameObject localTongue;
-    public GameObject localTongueTransform;
+    public GameObject localTongueInstance;
     [SerializeField] public GameObject TonguePrefab;
     [SerializeField] public GameObject ServerTonguePrefab;
 
-    public GameObject tongueTransform;
+    public GameObject tongueInstance;
     public TestLobby lt;
     public Vector3 hitTarget;
    // public SpawnTongue st;
     Rigidbody rb;
     public CameraHandler ch;
     public TongueHandler th;
+    public TongueHandler lth;
     [SerializeField] public Vector2 cameraInput;
         public GameObject[] cameras;
     public GameObject[] players;
@@ -48,9 +49,6 @@ public class PlayerNetwork : NetworkBehaviour
             dead = false,
         }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public NetworkVariable<bool> deadValue = new NetworkVariable<bool>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    public NetworkVariable<float> OnlineSpeedx = new NetworkVariable<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    public NetworkVariable<float> OnlineSpeedy = new NetworkVariable<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    public NetworkVariable<float> OnlineSpeedz = new NetworkVariable<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     //allows the data to be sent online over the netcode
     public struct myCustomData : INetworkSerializable
@@ -65,7 +63,6 @@ public class PlayerNetwork : NetworkBehaviour
             serializer.SerializeValue(ref _int);
             serializer.SerializeValue(ref _bool);
             serializer.SerializeValue(ref message);
-
         }
     }
 
@@ -73,24 +70,10 @@ public class PlayerNetwork : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         deadValue.OnValueChanged += OnStateChanged;
-        OnlineSpeedx.OnValueChanged += (float previous, float newValue) =>
-        {
-
-        };
-        OnlineSpeedy.OnValueChanged += (float previous, float newValue) =>
-        {
-
-        };
-        OnlineSpeedz.OnValueChanged += (float previous, float newValue) =>
-        {
-
-        };
         randomNumber.OnValueChanged += (myCustomData previousValue, myCustomData newValue) =>
         {
             Debug.Log(OwnerClientId + "; randomNumber:" + newValue._int + "; " + newValue._bool + "; "+ newValue.message);
         };
-        
-
     }
     public void OnStateChanged(bool previous, bool current)
     {
@@ -154,14 +137,14 @@ public class PlayerNetwork : NetworkBehaviour
             //if this isn't the server, we dont' want to use the server's instance of the tongue, since it's laggy, so disable it if it exists
             if (!IsServer)
             {
-                tongueTransform = GameObject.Find("Tongue(Clone)");
-                tongueTransform.gameObject.SetActive(false);
+                tongueInstance = GameObject.Find("ServerTongue(Clone)");
+                tongueInstance.gameObject.SetActive(false);
                
             }
             if (IsServer)
             {
-                localTongueTransform = GameObject.Find("LocalTongue(Clone)");
-                localTongueTransform.gameObject.SetActive(false);
+                localTongueInstance = GameObject.Find("LocalTongue(Clone)");
+                localTongueInstance.gameObject.SetActive(false);
             }
         }
         catch
@@ -174,11 +157,7 @@ public class PlayerNetwork : NetworkBehaviour
             //make sure that tongues act and move properly, destroy them after 3 seconds, and make sure client's online tongues aren't seen by them
             if (th != null)
             {
-                Debug.Log(hitTarget);
-                th.updateTongue(pm.hitTarget, this.gameObject.transform.position);
-                Destroy(tongueTransform.gameObject, 3);
-                tongueTransform.GetComponent<NetworkObject>().NetworkHide(this.gameObject.GetComponent<NetworkObject>().NetworkObjectId);
-                localTongueTransform.GetComponent<TongueHandler>().updateTongue(pm.hitTarget, this.gameObject.transform.position);
+                Destroy(tongueInstance.gameObject, 3);
             }
         }
         catch
@@ -195,24 +174,40 @@ public class PlayerNetwork : NetworkBehaviour
                 knockBackCD = false;
             }
         }
-
+        try
+        {
+            th = tongueInstance.GetComponentInChildren<TongueHandler>();
+        }
+        catch
+        {
+            Debug.Log("No Tongue Transform");
+        }
       try
         {
 
-            localTongueTransform.GetComponent<TongueHandler>().updateTongue(pm.hitTarget, this.gameObject.transform.position);
+            lth.updateTongue(pm.hitTarget, this.gameObject.transform.position);
         }
         catch
         {
             Debug.Log("No Local Tongue");
         }
+        try
+        {
+            th.updateTongue(hitTarget, this.gameObject.transform.position);
+            Debug.Log(hitTarget + " Is Online Tongue");
+        }
+        catch
+        {
+            Debug.Log("No online Tongue");
+        }
 
         //if there is no online tongue, make sure to destroy the local tongue, and despawn the tongue online
-        if (tongueTransform == null)
+        if (tongueInstance == null)
         {
             try
             {
-                Destroy(localTongueTransform,3);
-                tongueTransform.GetComponent<NetworkObject>().Despawn();
+                Destroy(localTongueInstance,3);
+                tongueInstance.GetComponent<NetworkObject>().Despawn();
             }
             catch
             {
@@ -231,63 +226,17 @@ public class PlayerNetwork : NetworkBehaviour
         {
             ch.targetTransform = players[Random.Range(0, players.Length)].transform;
         }
-        
-        //I need to make sure the cameras are looking at the correct player
-        //to do this, I got every camera in the scene
 
-        /*
-        cameras = GameObject.FindGameObjectsWithTag("CAMERA");
-        foreach (GameObject c in cameras)
-        {
-            //if this player is detecting player inputs for the camera, and on the camera's end, it's not receiving these inputs, then it's another player's camera
-            if ((cameraInput.x != 0 || cameraInput.y != 0) && c.GetComponentInChildren<CameraHandler>().inputReceived == false)
-            {
-                //and it needs to be disabled locally
-                c.SetActive(false);
-            }
-            else
-            {
-                //If this is the right camera, get it's orientation
-                camDirF = c.transform.forward;
-                camDirR = c.transform.right;
-            }
-            if (dead)
-            {
-                if (this.gameObject.transform == c.GetComponentInChildren<CameraHandler>().targetTransform)
-                {
-                    c.GetComponentInChildren<CameraHandler>().targetTransform = players[Random.Range(0, players.Length)].transform;
-                }
-            }
-
-        }
-        */
         if (!IsOwner) return;
-
-        //test code used while testing and for reference
-        /*
-        if(Input.GetKeyDown(KeyCode.T))
-        {
-            randomNumber.Value = new myCustomData {  _int = Random.Range(0,100), _bool = false, message = "ABCDEFG"};
-        }
-        if (Input.GetKeyDown(KeyCode.Y))
-        {
-            spawnedObjectTransform.GetComponent<NetworkObject>().Despawn(true);
-            Destroy(spawnedObjectTransform.gameObject);
-        }
-        */
-
-        //function for player movement and abilities
-      //  pm.HandleMovement(ch);
     }
-
 
     //online gameObjects can't be created by clients, so they need to send a message to the server to spawn them when needed
     [ServerRpc]
     public void TestServerRpc(ulong clientId, Vector3 target)
     {
-        tongueTransform = Instantiate(TonguePrefab);
-        tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
-        th = tongueTransform.GetComponentInChildren<TongueHandler>();
+        tongueInstance = Instantiate(ServerTonguePrefab);
+        tongueInstance.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+        th = tongueInstance.GetComponentInChildren<TongueHandler>();
         hitTarget = target;
         Debug.Log("TestServerRPC" + th);
     }
@@ -295,9 +244,9 @@ public class PlayerNetwork : NetworkBehaviour
     [ServerRpc]
     public void Test2ServerRpc(ulong clientId, Vector3 target)
     {
-        tongueTransform = Instantiate(ServerTonguePrefab);
-        tongueTransform.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
-        th = tongueTransform.GetComponentInChildren<TongueHandler>();
+        tongueInstance = Instantiate(TonguePrefab);
+        tongueInstance.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+        th = tongueInstance.GetComponentInChildren<TongueHandler>();
         hitTarget = target;
         Debug.Log("TestServerRPC" + th);
     }
@@ -322,20 +271,6 @@ public class PlayerNetwork : NetworkBehaviour
         rb2.AddForce(-dir.normalized * 10, ForceMode.Impulse);
     }
 
-    //for some reason, it seems rigidbodies of other's cant be changed normally, and messages need to be sent to the object's owner for them to move objects
-    //this is the message for client players
-    [ClientRpc]
-    private void CollisionClientRpc(Vector3 sender, ClientRpcParams clientRpcParams = default)
-    {
-        //gets the vector from the colliding player to this player, so it can be launched in the right way
-        Debug.Log("telling client to knockback themselves");
-          Vector3 dir = sender - NetworkManager.LocalClient.PlayerObject.transform.position;
-        rbAP = NetworkManager.LocalClient.PlayerObject.GetComponent<Rigidbody>();
-        rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
-    }
-
-  
-
     //collision check for water, if the player falls into water, they are eliminated
     void OnCollisionEnter(Collision c)
     {
@@ -354,47 +289,15 @@ public class PlayerNetwork : NetworkBehaviour
 
         if (c.gameObject.tag == "Player" || c.gameObject.tag == "Untagged" && knockBackCD == false)
         {
-
             float knockBackStrength = 5;
             float knockbackMultiplier;
-            //get the hit object, and it's rigidbody, get the vector from this player to that one
-          //  GameObject attackingPlayer = c.gameObject;
-         //   rbAP = c.gameObject.GetComponent<Rigidbody>();
             Vector3 dir = this.transform.position - c.transform.position;
             Debug.Log(c.gameObject.tag + "THIS IS THE OTHER HITBOX");
-          //  Debug.Log(rb + "Is hitting "+ rbAP + "THIS IS it's rigidbody" + "With a force going" + dir);
             if (!IsServer)
             {
                 rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
                 CollisionServerRpc(this.gameObject, c.gameObject);
             }
-           // if (IsServer)
-          //  {
-                //rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
-          //  }
-            // rb.AddForce(dir.normalized * 10, ForceMode.Impulse);
-            //   rbAP.AddForce(-dir.normalized * 10, ForceMode.Impulse);
-            /*
-            //if this is the host, then send a message to the hit client to have it move it's rigidbody
-            if (IsServer)
-            {
-                ClientRpcParams clientRpcParams = new ClientRpcParams
-                {
-                    Send = new ClientRpcSendParams
-                    {
-                        TargetClientIds = new ulong[] { c.gameObject.GetComponent<NetworkObject>().NetworkObjectId }
-                    }
-                };
-                CollisionClientRpc(dir, clientRpcParams);
-            }
-            //if this is a client, tell the server to move it's rigidbody
-            if(!IsServer) {
-                CollisionServerRpc(this.gameObject, c.gameObject);
-            }
-            Vector3 knockDir = new Vector3(rbAP.velocity.x, 0, rbAP.velocity.z);
-            kbTimer = 1;
-            knockBackCD = true;
-            */
         }
     }
 }
