@@ -25,8 +25,6 @@ public class TestRelay : MonoBehaviour
 
     }
 
-
-  
     //Gets allocation (data from host about IP and port, creates key to send data through this IP and code for the connection)
     //also defines maximum connections allowed on this relay (Not including host)
     //get the join code for multiplayer from the allocation creation

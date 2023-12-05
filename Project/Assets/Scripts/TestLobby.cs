@@ -95,6 +95,9 @@ public class TestLobby : MonoBehaviour
             playerCams = GameObject.FindGameObjectsWithTag("CAMERA");
         }
 
+        //if the game has started, checks for all players, and then determines if they are alive or not.
+        //if not, a float representing the amount of living players goes down
+        //if it is at 1, then the game restarts
         if (timer < 0)
         {
             listOfPlayers = GameObject.FindGameObjectsWithTag("Player");

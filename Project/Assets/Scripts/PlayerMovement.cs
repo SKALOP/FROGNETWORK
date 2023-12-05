@@ -183,6 +183,8 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
         }
+
+    //makes the connected camera follow and rotate for the player
   public void FixedUpdate()
     {
         float d = Time.fixedDeltaTime;

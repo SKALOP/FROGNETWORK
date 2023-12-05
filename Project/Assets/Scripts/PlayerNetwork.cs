@@ -39,6 +39,8 @@ public class PlayerNetwork : NetworkBehaviour
     public float startTimer = 5;
     [SerializeField]
     private PlayerMovement pm;
+    private GameObject[] Players;
+    private GameObject[] spawns;
     // public GameObject cameraHANDLER;
     //tests for sending custom data
     //will need to elaborate on this when I start making the game mechanics
@@ -98,6 +100,13 @@ public class PlayerNetwork : NetworkBehaviour
         ch.targetTransform = this.gameObject.transform;
         //pick a random spawn location
         spawnLoc = Random.Range(0, 3);
+
+
+    }
+    void Start()
+    {
+        Players = GameObject.FindGameObjectsWithTag("Player");
+        spawns = GameObject.FindGameObjectsWithTag("SPAWN");
     }
     // Update is called once per frame
     //due to scene references and how the netcode package works, the game spawns a controllable player for each ID present that is the transform for this object.
@@ -112,12 +121,8 @@ public class PlayerNetwork : NetworkBehaviour
         {
             Debug.Log("TICKING...");
             startTimer -= Time.deltaTime;
-            //find all possible spawns
-            GameObject[] spawns = GameObject.FindGameObjectsWithTag("SPAWN");
             //set the player's positions to one of the spawn points
             this.transform.position = spawns[spawnLoc].transform.position;
-            //find all players
-            GameObject[] Players = GameObject.FindGameObjectsWithTag("Player");
             //check if any other players are overlapping with this one (having the same spawn)
             foreach (GameObject p in Players)
             {
